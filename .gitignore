@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables (keep real values out of git)
+.env
+.env.*
+!.env.example
+
+# Firebase Admin service-account key (NEVER commit or share)
+firebase-admin-key.json
+*-firebase-adminsdk-*.json
+
+# Firebase CLI / emulator files
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*

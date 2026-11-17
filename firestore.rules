@@ -1,0 +1,578 @@
+rules_version = '2';
+
+// Farm To Home — Firestore Security Rules
+// These run on Firebase's servers and are the REAL protection for data.
+// Anything not explicitly allowed below is denied.
+//
+// Deploy:  npx firebase deploy --only firestore:rules
+//   (or paste this whole file into Firebase console → Firestore → Rules → Publish)
+// Test:    npm run test:emulator
+//
+// Limits to keep in sync with the app:
+//   - MAX 6 different products per order   (src/utils/constants.js MAX_ORDER_ITEMS)
+//     This is set by Firestore's limit of 1,000 evaluated expressions per
+//     request: checkout validates every line AND every stock change in one
+//     request. 6 is the tested maximum (see tests/workflows.test.js).
+//   - Up to 20 units of each product (enforced by the app; the rules require
+//     the stock to drop by exactly the ordered amount and never below zero)
+//   - Delivery fee ₹40, free from ₹500      (DELIVERY_FEE_PAISE, FREE_DELIVERY_FROM_PAISE)
+// Order money is stored in whole paise (₹1 = 100) so totals are exact.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================================================================
+    // Helpers
+    // =====================================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function docPath(collectionName, id) {
+      return /databases/$(database)/documents/$(collectionName)/$(id);
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && myProfile().role == 'admin';
+    }
+
+    function isFarmer() {
+      return isSignedIn() && myProfile().role == 'farmer';
+    }
+
+    // Farmers can sell unless an admin has suspended them. (Legacy values such
+    // as 'pending' or 'approved' from the old approval flow count as active.)
+    function isSellingFarmer() {
+      return isFarmer() && myProfile().farmerStatus != 'suspended';
+    }
+
+    function isActiveCustomer(profile) {
+      return profile.role == 'customer' && profile.get('blocked', false) == false;
+    }
+
+    function isValidName(name) {
+      return name is string && name.size() >= 2 && name.size() <= 60;
+    }
+
+    function isValidPhone(phone) {
+      return phone is string && (phone.size() == 0 || phone.matches('^[6-9][0-9]{9}$'));
+    }
+
+    function isMobile(phone) {
+      return phone is string && phone.matches('^[6-9][0-9]{9}$');
+    }
+
+    function isText(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    // Exactly these 8 fields (line2 and landmark may be empty strings).
+    function isValidAddress(a) {
+      return a.keys().size() == 8
+        && a.keys().hasAll(['fullName', 'phone', 'line1', 'line2', 'landmark', 'city', 'state', 'pincode'])
+        && a.fullName.size() >= 2 && a.fullName.size() <= 60
+        && a.phone.matches('^[6-9][0-9]{9}$')
+        && a.line1.size() >= 3 && a.line1.size() <= 120
+        && a.line2.size() <= 120
+        && a.landmark.size() <= 80
+        && a.city.size() >= 2 && a.city.size() <= 60
+        && a.state.size() >= 2 && a.state.size() <= 60
+        && a.pincode.matches('^[1-9][0-9]{5}$');
+    }
+
+    // =====================================================================
+    // users/{uid}
+    // =====================================================================
+
+    // Brand-new profile at signup. Only 'customer' or 'farmer'.
+    // Nobody can sign up as admin; farmers start as 'active'.
+    function isValidNewUser() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['name', 'email', 'phone', 'role', 'farmerStatus', 'createdAt'])
+        && isValidName(data.name)
+        && data.email == request.auth.token.email
+        && isValidPhone(data.phone)
+        && data.createdAt == request.time
+        && (
+          (data.role == 'customer' && !('farmerStatus' in data))
+          || (data.role == 'farmer' && data.farmerStatus == 'active')
+        );
+    }
+
+    // Users may edit their name, phone and saved address — never role/status.
+    function isAllowedSelfUpdate() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'address'])
+        && isValidName(d.name)
+        && isValidPhone(d.phone)
+        && (!('address' in d) || isValidAddress(d.address));
+    }
+
+    // Admins may only suspend/reinstate farmers and block customers (never roles —
+    // admin accounts are created with scripts/admin/set-admin.mjs).
+    function isAllowedAdminUserUpdate() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly(['farmerStatus', 'blocked', 'statusUpdatedAt'])
+        && d.statusUpdatedAt == request.time
+        && (
+          !d.diff(resource.data).affectedKeys().hasAny(['farmerStatus'])
+          || (resource.data.role == 'farmer'
+              && d.farmerStatus in ['active', 'suspended'])
+        )
+        && (
+          !d.diff(resource.data).affectedKeys().hasAny(['blocked'])
+          || (resource.data.role == 'customer' && d.blocked is bool)
+        );
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && isValidNewUser();
+      allow update: if (isOwner(uid) && isAllowedSelfUpdate())
+        || (isAdmin() && !isOwner(uid) && isAllowedAdminUserUpdate());
+      allow delete: if false;
+    }
+
+    // =====================================================================
+    // categories/{slug} — read by everyone, managed by admins.
+    // The fixed DEFAULT set may also be CREATED (never updated) by any
+    // signed-in user, but only until the marker settings/categories exists.
+    // The app writes each default separately, then the marker, which may only
+    // be created once all defaults exist. So a brand-new project works without
+    // an admin, a partly-seeded store can be finished by a later visitor, and
+    // admins' later edits/deletions are never undone. Keep this list in sync
+    // with DEFAULT_CATEGORIES in src/utils/constants.js.
+    // =====================================================================
+
+    function isDefaultCategory(slug, d) {
+      return (slug == 'vegetables' && d.label == 'Vegetables' && d.sortOrder == 0)
+        || (slug == 'fruits' && d.label == 'Fruits' && d.sortOrder == 10)
+        || (slug == 'grains-pulses' && d.label == 'Grains & Pulses' && d.sortOrder == 20)
+        || (slug == 'dairy-eggs' && d.label == 'Dairy & Eggs' && d.sortOrder == 30)
+        || (slug == 'spices-herbs' && d.label == 'Spices & Herbs' && d.sortOrder == 40)
+        || (slug == 'dry-fruits-nuts' && d.label == 'Dry Fruits & Nuts' && d.sortOrder == 50)
+        || (slug == 'honey-jaggery' && d.label == 'Honey & Jaggery' && d.sortOrder == 60)
+        || (slug == 'oils-ghee' && d.label == 'Oils & Ghee' && d.sortOrder == 70);
+    }
+
+    function defaultsNotSeededYet() {
+      return !exists(/databases/$(database)/documents/settings/categories);
+    }
+
+    function isValidCategory(slug) {
+      let d = request.resource.data;
+      return slug.matches('^[a-z0-9]+(-[a-z0-9]+)*$') && slug.size() <= 40
+        && d.keys().hasOnly(['label', 'emoji', 'isActive', 'sortOrder', 'createdAt', 'updatedAt'])
+        && isText(d.label, 2, 40)
+        && isText(d.emoji, 0, 8)
+        && d.isActive is bool
+        && d.sortOrder is int && d.sortOrder >= 0 && d.sortOrder <= 1000
+        && d.updatedAt == request.time;
+    }
+
+    function isActiveCategory(slug) {
+      return exists(docPath('categories', slug))
+        && get(docPath('categories', slug)).data.isActive == true;
+    }
+
+    match /categories/{slug} {
+      allow read: if true;
+      allow create: if isValidCategory(slug)
+        && request.resource.data.createdAt == request.time
+        && (isAdmin()
+          || (isSignedIn() && defaultsNotSeededYet()
+              && request.resource.data.isActive == true
+              && isDefaultCategory(slug, request.resource.data)));
+      allow update: if isAdmin() && isValidCategory(slug)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    // 8 document lookups — within the 10-per-request limit.
+    function allDefaultCategoriesExist() {
+      return exists(docPath('categories', 'vegetables'))
+        && exists(docPath('categories', 'fruits'))
+        && exists(docPath('categories', 'grains-pulses'))
+        && exists(docPath('categories', 'dairy-eggs'))
+        && exists(docPath('categories', 'spices-herbs'))
+        && exists(docPath('categories', 'dry-fruits-nuts'))
+        && exists(docPath('categories', 'honey-jaggery'))
+        && exists(docPath('categories', 'oils-ghee'));
+    }
+
+    // Marker: the default categories have been created once. It can only be
+    // created after all of them exist, so nobody can block the automatic
+    // setup by writing it early (or leave a store half-seeded for good).
+    match /settings/categories {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['defaultsSeeded', 'seededAt'])
+        && request.resource.data.defaultsSeeded == true
+        && request.resource.data.seededAt == request.time
+        && allDefaultCategoriesExist();
+      allow update, delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // farms/{farmerId} — public farm profile, written by its own farmer
+    // =====================================================================
+
+    function isValidFarm() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['farmName', 'city', 'state', 'description', 'createdAt', 'updatedAt'])
+        && isText(d.farmName, 2, 80)
+        && isText(d.city, 2, 60)
+        && isText(d.state, 2, 60)
+        && isText(d.description, 0, 1000)
+        && d.updatedAt == request.time;
+    }
+
+    match /farms/{farmerId} {
+      allow read: if true;
+      allow create: if isOwner(farmerId) && isFarmer() && isValidFarm()
+        && request.resource.data.createdAt == request.time;
+      allow update: if isOwner(farmerId) && isFarmer() && isValidFarm()
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // products/{productId}
+    // =====================================================================
+
+    function isValidProduct() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['farmerId', 'farmName', 'farmLocation', 'name', 'description',
+                               'category', 'price', 'mrp', 'unit', 'stock', 'images',
+                               'isActive', 'createdAt', 'updatedAt',
+                               'lastOrderId', 'hiddenBy'])
+        && d.keys().hasAll(['farmerId', 'farmName', 'farmLocation', 'name', 'description',
+                            'category', 'price', 'mrp', 'unit', 'stock', 'images',
+                            'isActive', 'createdAt', 'updatedAt'])
+        && isText(d.name, 2, 100)
+        && isText(d.description, 0, 2000)
+        && d.category is string
+        && d.price is number && d.price > 0 && d.price <= 100000
+        && (d.mrp == null || (d.mrp is number && d.mrp >= d.price && d.mrp <= 100000))
+        && d.unit in ['kg', '500g', '250g', 'litre', 'dozen', 'piece', 'bunch']
+        && d.stock is int && d.stock >= 0 && d.stock <= 100000
+        && d.images is list && d.images.size() >= 1 && d.images.size() <= 5
+        && d.isActive is bool
+        && d.farmName is string && d.farmLocation is string
+        && d.updatedAt == request.time;
+    }
+
+    // `hiddenBy` ('admin' or 'suspension') is set only by admins. A farmer may
+    // not change it, and may not relist a product while it is set.
+    function respectsAdminHide() {
+      let after = request.resource.data;
+      return after.get('hiddenBy', null) == resource.data.get('hiddenBy', null)
+        && !(after.get('hiddenBy', null) != null && after.isActive == true);
+    }
+
+    // CHECKOUT: a customer reduces stock by exactly the quantity in an order
+    // that is being created in the same transaction.
+    // (Values are passed as parameters because rules re-evaluate `let`s on every use.)
+    // (The order's own create rule checks it belongs to this customer, so
+    //  `createdAt == request.time` is enough to tie the two together.)
+    function checkoutStockOk(productId, before, after, order) {
+      return order.createdAt == request.time
+        && before.isActive == true
+        && after.stock is int && after.stock >= 0
+        && before.stock - after.stock == order.quantities[productId];
+    }
+
+    // CANCELLATION: stock goes back up by exactly the order quantity, only in
+    // the same write that moves this farmer's part of the order to 'cancelled'
+    // (which can only happen once).
+    function restockOk(productId, before, after, orderBefore, orderAfter) {
+      return orderBefore.fulfilment[before.farmerId].status in ['placed', 'confirmed']
+        && orderAfter.fulfilment[before.farmerId].status == 'cancelled'
+        && after.stock is int && after.stock <= 100000
+        && after.stock - before.stock == orderAfter.quantities[productId];
+    }
+
+    // The farmer editing their own product.
+    function isOwnerProductEdit() {
+      return resource.data.farmerId == request.auth.uid
+        && isSellingFarmer()
+        && request.resource.data.farmerId == resource.data.farmerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.get('lastOrderId', null) == resource.data.get('lastOrderId', null)
+        && respectsAdminHide()
+        && isValidProduct()
+        && (request.resource.data.category == resource.data.category
+            || isActiveCategory(request.resource.data.category));
+    }
+
+    // Admin moderation: only visibility fields.
+    function isAdminModeration() {
+      return isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isActive', 'hiddenBy', 'updatedAt'])
+        && request.resource.data.isActive is bool
+        && request.resource.data.get('hiddenBy', null) in [null, 'admin', 'suspension']
+        && !(request.resource.data.get('hiddenBy', null) != null
+             && request.resource.data.isActive == true);
+    }
+
+    match /products/{productId} {
+      // Customers see listed products; farmers see all of their own.
+      allow read: if resource.data.isActive == true
+        || (isSignedIn() && resource.data.farmerId == request.auth.uid)
+        || isAdmin();
+
+      allow create: if isSellingFarmer()
+        && request.resource.data.farmerId == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && !('lastOrderId' in request.resource.data)
+        && !('hiddenBy' in request.resource.data)
+        && isValidProduct()
+        && isActiveCategory(request.resource.data.category);
+
+      // ONE statement that picks the right check with `? :` — Firestore
+      // evaluates every `allow` statement, and rules have a budget of 1,000
+      // evaluated expressions per request, so a checkout touching 8 products
+      // must not pay for the farmer/admin checks.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'lastOrderId'])
+        ? (request.resource.data.stock < resource.data.stock
+            // Checkout: stock goes down by exactly the quantity in an order
+            // created in this same transaction.
+            ? checkoutStockOk(productId, resource.data, request.resource.data,
+                getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId)).data)
+            // Cancellation: stock goes back up as that part of the order is cancelled.
+            : restockOk(productId, resource.data, request.resource.data,
+                get(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId)).data,
+                getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId)).data))
+        : (isOwnerProductEdit() || isAdminModeration());
+
+      // A farmer can always remove their own products; admins can remove any.
+      allow delete: if (isSignedIn() && resource.data.farmerId == request.auth.uid) || isAdmin();
+    }
+
+    // =====================================================================
+    // products/{productId}/reviews/{uid}
+    // One review per customer per product, only after that product was
+    // delivered to them. Public to read.
+    // =====================================================================
+
+    function isValidReviewText(r) {
+      return r.rating is int && r.rating >= 1 && r.rating <= 5
+        && isText(r.comment, 0, 1000);
+    }
+
+    // The order named in the review belongs to this customer, contains the
+    // product, and that farm's shipment was delivered.
+    function isVerifiedPurchase(productId, r) {
+      let order = get(docPath('orders', r.orderId)).data;
+      let product = get(docPath('products', productId)).data;
+      return order.customerId == request.auth.uid
+        && order.quantities[productId] > 0
+        && r.farmerId == product.farmerId
+        && order.fulfilment[product.farmerId].status == 'delivered';
+    }
+
+    match /products/{productId}/reviews/{uid} {
+      allow read: if true;
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().size() == 8
+        && request.resource.data.keys().hasAll(['productId', 'farmerId', 'orderId', 'rating',
+                                                 'comment', 'customerName', 'createdAt', 'updatedAt'])
+        && request.resource.data.productId == productId
+        && isValidName(request.resource.data.customerName)
+        && isValidReviewText(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && isVerifiedPurchase(productId, request.resource.data);
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'comment', 'updatedAt'])
+        && isValidReviewText(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+
+    // Collection-group reads of reviews (farm ratings, storefront averages).
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if true;
+    }
+
+    // =====================================================================
+    // orders/{orderId}
+    // =====================================================================
+
+    // One order line, checked against the product as it is after this write.
+    // (Every field is read below, so keys().size() == 9 rules out extra keys.)
+    // (Quantity is a whole number ≥ 1 because the product's stock rule requires
+    //  stock to drop by exactly this amount and never go below zero.)
+    function itemMatches(o, orderId, i, item, product) {
+      return item.keys().size() == 9
+        && o.itemFarmerIds[i] == item.farmerId
+        && o.quantities[item.productId] == item.quantity
+        && item.lineTotalPaise == item.unitPricePaise * item.quantity
+        && product.lastOrderId == orderId
+        && item.farmerId == product.farmerId
+        && item.name == product.name
+        && item.unit == product.unit
+        && item.unitPricePaise == math.round(product.price * 100);
+    }
+
+    // Cheap structural checks first, then one check per order line.
+    // `n` is the number of lines (passed in once; rules re-evaluate `let`s).
+    function isValidNewOrder(orderId, o, n) {
+      return o.keys().size() == 14
+        && o.keys().hasAll(['customerId', 'customerEmail', 'address', 'items', 'quantities',
+                            'itemFarmerIds', 'farmerIds', 'fulfilment', 'subtotalPaise',
+                            'deliveryFeePaise', 'totalPaise', 'paymentMethod', 'createdAt',
+                            'updatedAt'])
+        && o.customerId == request.auth.uid
+        && o.customerEmail == request.auth.token.email
+        && o.paymentMethod == 'cod'
+        && o.createdAt == request.time
+        && o.updatedAt == request.time
+        && n >= 1 && n <= 6
+        // one quantity per product (no duplicates/extras), one farmer per line
+        && o.quantities.size() == n
+        && o.itemFarmerIds.size() == n
+        // farmerIds: unique, and exactly the farmers of the lines
+        && o.farmerIds.toSet().size() == o.farmerIds.size()
+        && o.farmerIds.toSet() == o.itemFarmerIds.toSet()
+        // every farmer's part starts as 'placed'
+        && o.fulfilment.keys().toSet() == o.farmerIds.toSet()
+        && o.fulfilment.values().hasOnly([{ 'status': 'placed', 'placedAt': request.time }])
+        // money (subtotal is checked once, then the stored value is reused)
+        && o.subtotalPaise == o.items[0].lineTotalPaise + (n > 1 ? o.items[1].lineTotalPaise : 0) + (n > 2 ? o.items[2].lineTotalPaise : 0) + (n > 3 ? o.items[3].lineTotalPaise : 0) + (n > 4 ? o.items[4].lineTotalPaise : 0) + (n > 5 ? o.items[5].lineTotalPaise : 0)
+        && o.deliveryFeePaise == (o.subtotalPaise >= 50000 ? 0 : 4000)
+        && o.totalPaise == o.subtotalPaise + o.deliveryFeePaise
+        && isValidAddress(o.address)
+        // each line matches its product, which this order reduced the stock of
+        && itemMatches(o, orderId, 0, o.items[0], getAfter(/databases/$(database)/documents/products/$(o.items[0].productId)).data)
+        && (n <= 1 || itemMatches(o, orderId, 1, o.items[1], getAfter(/databases/$(database)/documents/products/$(o.items[1].productId)).data))
+        && (n <= 2 || itemMatches(o, orderId, 2, o.items[2], getAfter(/databases/$(database)/documents/products/$(o.items[2].productId)).data))
+        && (n <= 3 || itemMatches(o, orderId, 3, o.items[3], getAfter(/databases/$(database)/documents/products/$(o.items[3].productId)).data))
+        && (n <= 4 || itemMatches(o, orderId, 4, o.items[4], getAfter(/databases/$(database)/documents/products/$(o.items[4].productId)).data))
+        && (n <= 5 || itemMatches(o, orderId, 5, o.items[5], getAfter(/databases/$(database)/documents/products/$(o.items[5].productId)).data));
+    }
+
+    // Allowed status changes for one farmer's part of an order.
+    function isAllowedTransition(from, to) {
+      return (from == 'placed' && to in ['confirmed', 'cancelled'])
+        || (from == 'confirmed' && to in ['shipped', 'cancelled'])
+        || (from == 'shipped' && to == 'delivered');
+    }
+
+    // One farmer's part is either unchanged, or moves one allowed step and
+    // stamps the time of the new status (e.g. `shippedAt`).
+    function partChangeOk(farmerId) {
+      let before = resource.data.fulfilment[farmerId];
+      let after = request.resource.data.fulfilment[farmerId];
+      return after == before || (
+        isAllowedTransition(before.status, after.status)
+        && after.diff(before).affectedKeys().hasOnly(['status', after.status + 'At'])
+        && after[after.status + 'At'] == request.time
+      );
+    }
+
+    function isStatusUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fulfilment', 'updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.fulfilment.keys().toSet() == resource.data.fulfilment.keys().toSet();
+    }
+
+    // A farmer changes only their own part.
+    function isFarmerStatusUpdate() {
+      return isStatusUpdate()
+        && request.resource.data.fulfilment.diff(resource.data.fulfilment).affectedKeys()
+             .hasOnly([request.auth.uid])
+        && partChangeOk(request.auth.uid);
+    }
+
+    function adminPartOk(i) {
+      return resource.data.farmerIds.size() <= i || partChangeOk(resource.data.farmerIds[i]);
+    }
+
+    // Admins can move any parts, each by one allowed step.
+    function isAdminStatusUpdate() {
+      return isStatusUpdate()
+        && adminPartOk(0) && adminPartOk(1) && adminPartOk(2) && adminPartOk(3)
+        && adminPartOk(4) && adminPartOk(5);
+    }
+
+    function cancelledPartOk(i) {
+      let ids = resource.data.farmerIds;
+      return ids.size() <= i || (
+        resource.data.fulfilment[ids[i]].status == 'placed'
+        && request.resource.data.fulfilment[ids[i]].diff(resource.data.fulfilment[ids[i]])
+             .affectedKeys().hasOnly(['status', 'cancelledAt'])
+        && request.resource.data.fulfilment[ids[i]].status == 'cancelled'
+        && request.resource.data.fulfilment[ids[i]].cancelledAt == request.time
+      );
+    }
+
+    // The customer cancels the whole order — only while no farmer has confirmed.
+    function isCustomerCancellation() {
+      return isStatusUpdate()
+        && cancelledPartOk(0) && cancelledPartOk(1) && cancelledPartOk(2) && cancelledPartOk(3)
+        && cancelledPartOk(4) && cancelledPartOk(5);
+    }
+
+    match /orders/{orderId} {
+      // `resource == null` lets checkout check that an order ID is still unused.
+      allow get: if isSignedIn() && (
+        resource == null
+        || resource.data.customerId == request.auth.uid
+        || request.auth.uid in resource.data.farmerIds
+        || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid
+        || request.auth.uid in resource.data.farmerIds
+        || isAdmin()
+      );
+
+      allow create: if isActiveCustomer(myProfile())
+        && isValidNewOrder(orderId, request.resource.data, request.resource.data.items.size());
+
+      // Separate statements keep each check small.
+      // a farmer moves their own part forward (or cancels it)
+      allow update: if isSignedIn() && request.auth.uid in resource.data.farmerIds
+        && isFarmer() && isFarmerStatusUpdate();
+      // the customer cancels before anything is confirmed
+      allow update: if isSignedIn() && resource.data.customerId == request.auth.uid
+        && isCustomerCancellation();
+      // admins can move any parts one step (e.g. for demo farms or support)
+      allow update: if isAdmin() && isAdminStatusUpdate();
+
+      allow delete: if false;
+    }
+
+    // =====================================================================
+    // messages/{id} — Contact form
+    // =====================================================================
+
+    match /messages/{messageId} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'subject', 'message',
+                                                 'orderId', 'status', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && isValidName(request.resource.data.name)
+        && isText(request.resource.data.subject, 3, 120)
+        && isText(request.resource.data.message, 10, 2000)
+        && isText(request.resource.data.get('orderId', ''), 0, 40)
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time;
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedAt'])
+        && request.resource.data.status in ['new', 'resolved'];
+    }
+  }
+}
