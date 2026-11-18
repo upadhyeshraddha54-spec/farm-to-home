@@ -7,6 +7,7 @@ import { PATHS } from '../../routes/paths'
 import { MAX_ITEM_QUANTITY, ROLES } from '../../utils/constants'
 import Button from '../ui/Button'
 import QuantityStepper from '../ui/QuantityStepper'
+import { localized, t } from '../../i18n'
 
 /** Quantity + "Add to cart" for a product page. */
 export default function AddToCart({ product }) {
@@ -21,7 +22,7 @@ export default function AddToCart({ product }) {
   if (role === ROLES.FARMER || role === ROLES.ADMIN) {
     return (
       <p className="rounded-lg bg-cream-100 px-3 py-2 text-sm text-gray-600">
-        Seller and admin accounts can’t place orders. Sign in with a customer account to buy.
+        {t('Seller and admin accounts can’t place orders. Sign in with a customer account to buy.')}
       </p>
     )
   }
@@ -34,7 +35,12 @@ export default function AddToCart({ product }) {
       toast.error(result.reason)
       return
     }
-    toast.success(`Added to cart — ${product.name} × ${result.quantity}`)
+    toast.success(
+      t('Added to cart — {product} × {quantity}', {
+        product: localized(product, 'name'),
+        quantity: result.quantity,
+      }),
+    )
     setQuantity(1)
   }
 
@@ -48,19 +54,19 @@ export default function AddToCart({ product }) {
             onChange={setQuantity}
           />
           <Button variant="accent" size="lg" onClick={handleAdd} className="flex-1 sm:flex-none">
-            Add to cart
+            {t('Add to cart')}
           </Button>
         </div>
       ) : (
         <p className="text-sm text-gray-600">
-          You have the maximum available quantity of this item in your cart.
+          {t('You have the maximum available quantity of this item in your cart.')}
         </p>
       )}
       {inCart > 0 && (
         <p className="text-sm text-gray-700">
-          {inCart} in your cart ·{' '}
+          {t('{count} in your cart', { count: inCart })} ·{' '}
           <Link to={PATHS.CART} className="font-semibold text-brand-700 hover:underline">
-            Go to cart
+            {t('Go to cart')}
           </Link>
         </p>
       )}

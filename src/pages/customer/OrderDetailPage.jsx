@@ -18,6 +18,7 @@ import { cancelOrder, subscribeToOrder } from '../../services/orderService'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { formatDateTime } from '../../utils/formatters'
 import { canCustomerCancel, getOverallStatus, shortOrderId } from '../../utils/orders'
+import { t } from '../../i18n'
 
 export default function OrderDetailPage() {
   const { orderId } = useParams()
@@ -30,11 +31,11 @@ export default function OrderDetailPage() {
     setCancelling(true)
     try {
       await cancelOrder(order.data)
-      toast.success('Your order has been cancelled.')
+      toast.success(t('Your order has been cancelled.'))
     } catch (error) {
       toast.error(
         error?.code === 'permission-denied'
-          ? 'This order can no longer be cancelled because a farmer has already confirmed it.'
+          ? t('This order can no longer be cancelled because a farmer has already confirmed it.')
           : getFriendlyErrorMessage(error),
       )
     } finally {
@@ -49,9 +50,9 @@ export default function OrderDetailPage() {
     return (
       <Container className="py-10">
         <EmptyState
-          title="Order not found"
-          message="This order doesn’t exist or belongs to another account."
-          action={<Button to={PATHS.ORDERS}>Your orders</Button>}
+          title={t('Order not found')}
+          message={t('This order doesn’t exist or belongs to another account.')}
+          action={<Button to={PATHS.ORDERS}>{t('Your orders')}</Button>}
         />
       </Container>
     )
@@ -62,19 +63,19 @@ export default function OrderDetailPage() {
 
   return (
     <Container className="max-w-4xl py-6">
-      <PageMeta title={`Order #${number}`} noIndex />
-      <Breadcrumbs items={[{ label: 'Your orders', to: PATHS.ORDERS }, { label: `Order #${number}` }]} />
+      <PageMeta title={t('Order #{id}', { id: number })} noIndex />
+      <Breadcrumbs items={[{ label: t('Your orders'), to: PATHS.ORDERS }, { label: t('Order #{id}', { id: number }) }]} />
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex flex-wrap items-center gap-3 text-2xl font-bold text-gray-900">
-            Order #{number} <OrderStatusBadge status={getOverallStatus(data)} />
+            {t('Order #{id}', { id: number })} <OrderStatusBadge status={getOverallStatus(data)} />
           </h1>
-          <p className="mt-1 text-sm text-gray-600">Placed {formatDateTime(data.createdAt)}</p>
+          <p className="mt-1 text-sm text-gray-600">{t('Placed {date}', { date: formatDateTime(data.createdAt) })}</p>
         </div>
         {canCustomerCancel(data) && (
           <Button variant="outline" onClick={() => setConfirming(true)}>
-            Cancel order
+            {t('Cancel order')}
           </Button>
         )}
       </div>
@@ -88,7 +89,7 @@ export default function OrderDetailPage() {
                 to={`${productPath(item.productId)}#reviews`}
                 className="text-xs font-semibold text-brand-700 hover:underline"
               >
-                Rate this product
+                {t('Rate this product')}
               </Link>
             ) : null
           }
@@ -97,12 +98,12 @@ export default function OrderDetailPage() {
           <PaymentBlock order={data} />
           <AddressBlock address={data.address} />
           <p className="text-sm text-gray-600">
-            Need help with this order?{' '}
+            {t('Need help with this order?')}{' '}
             <Link
               to={`${PATHS.CONTACT}?order=${encodeURIComponent(data.id)}`}
               className="font-semibold text-brand-700 hover:underline"
             >
-              Contact us
+              {t('Contact us')}
             </Link>
           </p>
         </div>
@@ -110,10 +111,10 @@ export default function OrderDetailPage() {
 
       <ConfirmDialog
         open={confirming}
-        title="Cancel this order?"
-        message="All items will be cancelled and nothing will be delivered. You can cancel only until a farmer confirms the order."
-        confirmLabel="Cancel order"
-        cancelLabel="Keep order"
+        title={t('Cancel this order?')}
+        message={t('All items will be cancelled and nothing will be delivered. You can cancel only until a farmer confirms the order.')}
+        confirmLabel={t('Cancel order')}
+        cancelLabel={t('Keep order')}
         busy={cancelling}
         onConfirm={handleCancel}
         onCancel={() => setConfirming(false)}

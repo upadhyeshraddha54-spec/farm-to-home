@@ -20,6 +20,9 @@ import { getUnitLabel } from '../../utils/constants'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { EMPTY_ADDRESS, formatPaise, toPaise } from '../../utils/orders'
 import { hasNoErrors, validateAddress } from '../../utils/validators'
+import { localized, t, tx } from '../../i18n'
+import useLocalizedNames from '../../hooks/useLocalizedNames'
+import { getFarmName } from '../../services/nameService'
 
 function initialAddress(profile) {
   if (profile?.address) return { ...EMPTY_ADDRESS, ...profile.address }
@@ -31,6 +34,7 @@ export default function CheckoutPage() {
   const toast = useToast()
   const { user, profile } = useAuth()
   const { removeItems } = useCart()
+  useLocalizedNames()
   const { lines, totals, units, hasProblems, loading, error, reload } = useCartDetails()
 
   // One order ID per checkout visit: pressing "Place order" twice (or a
@@ -53,7 +57,7 @@ export default function CheckoutPage() {
     const nextErrors = validateAddress(address)
     setErrors(nextErrors)
     if (!hasNoErrors(nextErrors)) {
-      setFailure({ message: 'Please check your delivery address.' })
+      setFailure({ message: t('Please check your delivery address.') })
       return
     }
 
@@ -67,7 +71,7 @@ export default function CheckoutPage() {
         saveMyAddress(user.uid, cleaned).catch(() => {})
       }
       removeItems(cartItems.map((i) => i.productId))
-      toast.success(result.alreadyPlaced ? 'This order was already placed.' : 'Order placed! Pay in cash when it arrives.')
+      toast.success(result.alreadyPlaced ? t('This order was already placed.') : t('Order placed! Pay in cash when it arrives.'))
       navigate(orderPath(result.orderId), { replace: true })
     } catch (err) {
       setSubmitting(false)
@@ -75,7 +79,7 @@ export default function CheckoutPage() {
         setFailure({ message: err.message, problems: err.problems })
         reload()
       } else if (err?.code === 'permission-denied' && profile?.blocked) {
-        setFailure({ message: 'Your account can’t place orders right now. Please contact support.' })
+        setFailure({ message: t('Your account can’t place orders right now. Please contact support.') })
       } else {
         setFailure({ message: getFriendlyErrorMessage(err) })
       }
@@ -85,11 +89,11 @@ export default function CheckoutPage() {
   if (!lines.length) {
     return (
       <Container className="py-10">
-        <PageMeta title="Checkout" noIndex />
+        <PageMeta title={t('Checkout')} noIndex />
         <EmptyState
-          title="Your cart is empty"
-          message="Add some products before checking out."
-          action={<Button to={PATHS.PRODUCTS}>Start shopping</Button>}
+          title={t('Your cart is empty')}
+          message={t('Add some products before checking out.')}
+          action={<Button to={PATHS.PRODUCTS}>{t('Start shopping')}</Button>}
         />
       </Container>
     )
@@ -97,8 +101,8 @@ export default function CheckoutPage() {
 
   return (
     <Container className="py-6">
-      <PageMeta title="Checkout" noIndex />
-      <h1 className="mb-4 text-2xl font-bold text-gray-900">Checkout</h1>
+      <PageMeta title={t('Checkout')} noIndex />
+      <h1 className="mb-4 text-2xl font-bold text-gray-900">{t('Checkout')}</h1>
 
       {error ? (
         <LoadError error={error} onRetry={reload} />
@@ -115,13 +119,19 @@ export default function CheckoutPage() {
                       {failure.problems.map((p) => (
                         <li key={p.productId}>
                           {p.type === 'stock'
-                            ? `${p.name}: only ${p.available} left`
-                            : 'An item is no longer available'}
+                            ? t('{product}: only {count} left', {
+                                product: localized(
+                                  lines.find((l) => l.productId === p.productId)?.product ?? p,
+                                  'name',
+                                ),
+                                count: p.available,
+                              })
+                            : t('An item is no longer available')}
                         </li>
                       ))}
                     </ul>
                     <Link to={PATHS.CART} className="mt-2 inline-block font-semibold underline">
-                      Review your cart
+                      {t('Review your cart')}
                     </Link>
                   </>
                 )}
@@ -129,13 +139,13 @@ export default function CheckoutPage() {
             )}
             {hasProblems && !failure && (
               <Alert variant="warning">
-                Some items in your cart need attention.{' '}
-                <Link to={PATHS.CART} className="font-semibold underline">Go back to your cart</Link>
+                {t('Some items in your cart need attention.')}{' '}
+                <Link to={PATHS.CART} className="font-semibold underline">{t('Go back to your cart')}</Link>
               </Alert>
             )}
 
             <section className="rounded-xl border border-cream-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="mb-4 text-base font-semibold text-gray-900">1. Delivery address</h2>
+              <h2 className="mb-4 text-base font-semibold text-gray-900">{t('1. Delivery address')}</h2>
               <AddressFields values={address} errors={errors} onChange={handleAddressChange} />
               <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
                 <input
@@ -144,34 +154,36 @@ export default function CheckoutPage() {
                   onChange={(e) => setSaveAddress(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                 />
-                Save this address for next time
+                {t('Save this address for next time')}
               </label>
             </section>
 
             <section className="rounded-xl border border-cream-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="mb-2 text-base font-semibold text-gray-900">2. Payment</h2>
+              <h2 className="mb-2 text-base font-semibold text-gray-900">{t('2. Payment')}</h2>
               <div className="flex items-start gap-3 rounded-lg border-2 border-brand-600 bg-brand-50 p-3">
                 <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full border-4 border-brand-600 bg-white" aria-hidden="true" />
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">Cash on Delivery</p>
+                  <p className="text-sm font-semibold text-gray-900">{t('Cash on Delivery')}</p>
                   <p className="text-xs text-gray-600">
-                    Pay in cash to each farm’s delivery person when your items arrive.
+                    {t('Pay in cash to each farm’s delivery person when your items arrive.')}
                   </p>
                 </div>
               </div>
             </section>
 
             <section className="rounded-xl border border-cream-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="mb-3 text-base font-semibold text-gray-900">3. Review items</h2>
+              <h2 className="mb-3 text-base font-semibold text-gray-900">{t('3. Review items')}</h2>
               <ul className="divide-y divide-gray-100 text-sm">
                 {lines.map((line) => (
                   <li key={line.productId} className="flex justify-between gap-3 py-2">
                     <span className={line.problem ? 'text-red-600' : 'text-gray-800'}>
-                      {line.product?.name ?? 'Unavailable item'} × {line.quantity}
+                      {line.product ? localized(line.product, 'name') : t('Unavailable item')} × {line.quantity}
                       {line.product && (
                         <span className="text-gray-500"> ({getUnitLabel(line.product.unit)})</span>
                       )}
-                      <span className="block text-xs text-gray-500">{line.product?.farmName}</span>
+                      <span className="block text-xs text-gray-500">
+                        {line.product && getFarmName(line.product.farmerId, line.product.farmName)}
+                      </span>
                     </span>
                     {line.product && !line.problem && (
                       <span className="font-medium">
@@ -187,12 +199,13 @@ export default function CheckoutPage() {
           <div className="lg:sticky lg:top-24 lg:self-start">
             <OrderSummary totals={totals} units={units} showFreeDeliveryHint={false}>
               <Button type="submit" size="lg" className="w-full" disabled={submitting || hasProblems}>
-                {submitting ? 'Placing order…' : `Place order · ${formatPaise(totals.totalPaise)}`}
+                {submitting ? t('Placing order…') : t('Place order · {total}', { total: formatPaise(totals.totalPaise) })}
               </Button>
               <p className="mt-3 text-xs text-gray-500">
-                By placing the order you agree to our{' '}
-                <Link to={PATHS.TERMS} className="underline">Terms</Link> and{' '}
-                <Link to={PATHS.CANCELLATION} className="underline">Cancellation policy</Link>.
+                {tx('By placing the order you agree to our <terms>Terms</terms> and <cancel>Cancellation policy</cancel>.', {
+                  terms: (text) => <Link to={PATHS.TERMS} className="underline">{text}</Link>,
+                  cancel: (text) => <Link to={PATHS.CANCELLATION} className="underline">{text}</Link>,
+                })}
               </p>
             </OrderSummary>
           </div>

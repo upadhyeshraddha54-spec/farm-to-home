@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { DEFAULT_CATEGORIES } from '../utils/constants'
+import { cleanTranslations } from '../utils/translations'
 
 function toCategory(snap) {
   const data = snap.data()
@@ -45,6 +46,7 @@ export function saveCategory(slug, values, { isNew }) {
     emoji: (values.emoji ?? '').trim(),
     isActive: Boolean(values.isActive),
     sortOrder: Number.parseInt(values.sortOrder, 10) || 0,
+    translations: cleanTranslations(values.translations, ['label']),
     updatedAt: serverTimestamp(),
   }
   if (isNew) data.createdAt = serverTimestamp()

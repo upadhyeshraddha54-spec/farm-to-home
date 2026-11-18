@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "seed:demo": "node scripts/seed/seed-demo-data.mjs",
     "test:emulator": "firebase emulators:exec --only auth,firestore --project demo-farm-to-home \"vitest run\"",
-    "admin:grant": "node scripts/admin/set-admin.mjs"
+    "admin:grant": "node scripts/admin/set-admin.mjs",
+    "i18n:check": "node scripts/i18n/check.mjs"
   },
   "dependencies": {
     "firebase": "^13.2.0",

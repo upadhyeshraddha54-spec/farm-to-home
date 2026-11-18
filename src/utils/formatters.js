@@ -1,8 +1,10 @@
-/** Formats a Firestore Timestamp (or Date) like "9 Nov 2026". */
+import { getLanguage, getLocale } from '../i18n'
+
+/** Formats a Firestore Timestamp (or Date) like "9 Nov 2026", in the current language. */
 export function formatDate(value) {
   const date = typeof value?.toDate === 'function' ? value.toDate() : value
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return date.toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 /** Formats a 10-digit number as "98765 43210". */
@@ -33,10 +35,19 @@ export function getDiscountPercent(price, mrp) {
 export function formatDateTime(value) {
   const date = typeof value?.toDate === 'function' ? value.toDate() : value
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return ''
-  return date.toLocaleString('en-IN', {
+  return date.toLocaleString(getLocale(), {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
     minute: '2-digit',
+    // Hindi/Marathi locale data writes "am/pm" in English, so use a 24-hour clock there.
+    ...(getLanguage() === 'en' ? {} : { hourCycle: 'h23' }),
   })
+}
+
+/** Formats an ISO date string ("2026-11-12") as a long date in the current language. */
+export function formatLongDate(isoDate) {
+  const date = new Date(`${isoDate}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return isoDate
+  return date.toLocaleDateString(getLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
 }

@@ -7,14 +7,15 @@ import { subscribeToFarmerOrders } from '../services/orderService'
 import { subscribeToFarmerProducts } from '../services/productService'
 import { isFarmerSuspended, normalizeFarmerStatus, ORDER_STATUS } from '../utils/constants'
 import DashboardLayout from './DashboardLayout'
+import { t } from '../i18n'
 
 function navItems(newOrders) {
   return [
-    { label: 'Overview', to: PATHS.FARMER, end: true },
-    { label: 'Orders', to: PATHS.FARMER_ORDERS, badge: newOrders },
-    { label: 'My products', to: PATHS.FARMER_PRODUCTS, end: true },
-    { label: 'Add product', to: PATHS.FARMER_PRODUCT_NEW },
-    { label: 'Farm profile', to: PATHS.FARMER_PROFILE },
+    { label: t('Overview'), to: PATHS.FARMER, end: true },
+    { label: t('Orders'), to: PATHS.FARMER_ORDERS, badge: newOrders },
+    { label: t('My products'), to: PATHS.FARMER_PRODUCTS, end: true },
+    { label: t('Add product'), to: PATHS.FARMER_PRODUCT_NEW },
+    { label: t('Farm profile'), to: PATHS.FARMER_PROFILE },
   ]
 }
 
@@ -52,6 +53,6 @@ export default function FarmerLayout() {
   ).length
 
   return (
-    <DashboardLayout title="Farmer Dashboard" navItems={navItems(newOrders)} outletContext={context} />
+    <DashboardLayout title={t('Farmer Dashboard')} navItems={navItems(newOrders)} outletContext={context} />
   )
 }

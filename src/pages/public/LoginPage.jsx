@@ -11,6 +11,7 @@ import { PATHS } from '../../routes/paths'
 import { signIn } from '../../services/authService'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { hasNoErrors, validateEmail } from '../../utils/validators'
+import { t } from '../../i18n'
 
 export default function LoginPage() {
   const location = useLocation()
@@ -39,7 +40,7 @@ export default function LoginPage() {
 
     const nextErrors = {
       email: validateEmail(form.email),
-      password: form.password ? '' : 'Please enter your password.',
+      password: form.password ? '' : t('Please enter your password.'),
     }
     setErrors(nextErrors)
     if (!hasNoErrors(nextErrors)) return
@@ -56,17 +57,17 @@ export default function LoginPage() {
 
   return (
     <AuthCard
-      title="Sign in"
-      subtitle="Welcome back to Farm To Home."
+      title={t('Sign in')}
+      subtitle={t('Welcome back to Farm To Home.')}
       footer={
         <>
-          New to Farm To Home?{' '}
+          {t('New to Farm To Home?')}{' '}
           <Link
             to={PATHS.SIGNUP}
             state={location.state}
             className="font-semibold text-brand-700 hover:underline"
           >
-            Create an account
+            {t('Create an account')}
           </Link>
         </>
       }
@@ -75,7 +76,7 @@ export default function LoginPage() {
         {formError && <Alert variant="error">{formError}</Alert>}
 
         <Input
-          label="Email"
+          label={t('Email')}
           name="email"
           type="email"
           autoComplete="email"
@@ -84,7 +85,7 @@ export default function LoginPage() {
           error={errors.email}
         />
         <PasswordInput
-          label="Password"
+          label={t('Password')}
           name="password"
           autoComplete="current-password"
           value={form.password}
@@ -97,12 +98,12 @@ export default function LoginPage() {
             to={PATHS.FORGOT_PASSWORD}
             className="text-sm font-medium text-brand-700 hover:underline"
           >
-            Forgot password?
+            {t('Forgot password?')}
           </Link>
         </div>
 
         <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
+          {submitting ? t('Signing in…') : t('Sign in')}
         </Button>
       </form>
     </AuthCard>

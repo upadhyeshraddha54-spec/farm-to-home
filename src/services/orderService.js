@@ -16,6 +16,7 @@ import {
 import { auth, db } from '../config/firebase'
 import { MAX_ORDER_ITEMS, ORDER_STATUS } from '../utils/constants'
 import { byNewestOrder, calculateTotals, toPaise } from '../utils/orders'
+import { t } from '../i18n'
 
 /*
  * Order document (orders/{orderId}):
@@ -81,10 +82,10 @@ export async function fetchCartProducts(productIds) {
  */
 export async function placeOrder({ orderId, address, cartItems }) {
   const user = auth.currentUser
-  if (!user) throw new CheckoutError('Please sign in to place your order.')
-  if (!cartItems.length) throw new CheckoutError('Your cart is empty.')
+  if (!user) throw new CheckoutError(t('Please sign in to place your order.'))
+  if (!cartItems.length) throw new CheckoutError(t('Your cart is empty.'))
   if (cartItems.length > MAX_ORDER_ITEMS) {
-    throw new CheckoutError(`An order can contain up to ${MAX_ORDER_ITEMS} different products.`)
+    throw new CheckoutError(t('An order can contain up to {count} different products.', { count: MAX_ORDER_ITEMS }))
   }
 
   const orderRef = doc(db, 'orders', orderId)
@@ -93,7 +94,7 @@ export async function placeOrder({ orderId, address, cartItems }) {
     const existing = await tx.get(orderRef)
     if (existing.exists()) {
       if (existing.data().customerId === user.uid) return { orderId, alreadyPlaced: true }
-      throw new CheckoutError('This checkout has expired. Please refresh the page and try again.')
+      throw new CheckoutError(t('This checkout has expired. Please refresh the page and try again.'))
     }
 
     // Read every product inside the transaction.
@@ -124,7 +125,7 @@ export async function placeOrder({ orderId, address, cartItems }) {
       }
     })
     if (problems.length) {
-      throw new CheckoutError('Some items in your cart changed. Please review your cart.', problems)
+      throw new CheckoutError(t('Some items in your cart changed. Please review your cart.'), problems)
     }
 
     const items = cartItems.map((item, index) => {
@@ -227,7 +228,7 @@ export async function updateShipmentStatus(orderId, farmerIds, status) {
   const run = (skipUnreadable) =>
     runTransaction(db, async (tx) => {
       const snap = await tx.get(orderRef)
-      if (!snap.exists()) throw new Error('Order not found.')
+      if (!snap.exists()) throw new Error(t('Order not found.'))
       const order = snap.data()
 
       // Work out restocks before writing anything (transactions read first).

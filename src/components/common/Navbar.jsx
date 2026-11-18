@@ -4,11 +4,13 @@ import useCart from '../../hooks/useCart'
 import useSignOut from '../../hooks/useSignOut'
 import { PATHS, productsPath } from '../../routes/paths'
 import useCategories from '../../hooks/useCategories'
-import { ROLES } from '../../utils/constants'
+import { getCategoryLabel, ROLES } from '../../utils/constants'
 import Button from '../ui/Button'
 import Container from '../ui/Container'
 import Logo from './Logo'
+import LanguageSwitcher from './LanguageSwitcher'
 import SearchBar from './SearchBar'
+import { t, tp } from '../../i18n'
 
 const navLinkClass = ({ isActive }) =>
   `whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -26,7 +28,7 @@ function CartLink() {
           isActive ? 'bg-brand-800 text-white' : 'text-brand-50 hover:bg-brand-600 hover:text-white'
         }`
       }
-      aria-label={`Cart, ${count} ${count === 1 ? 'item' : 'items'}`}
+      aria-label={tp(count, 'Cart, {count} item', 'Cart, {count} items')}
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
         <path
@@ -34,7 +36,7 @@ function CartLink() {
           d="M7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM3 3h2l2.6 10.4A2 2 0 0 0 9.5 15h7.9a2 2 0 0 0 1.9-1.4L21.5 7H6.3L5.6 4.3A1.7 1.7 0 0 0 4 3H3Z"
         />
       </svg>
-      <span className="hidden lg:inline">Cart</span>
+      <span className="hidden lg:inline">{t('Cart')}</span>
       {count > 0 && (
         <span className="absolute -top-0.5 left-6 min-w-5 rounded-full bg-accent-500 px-1 text-center text-xs leading-5 font-bold text-gray-900 lg:static lg:ml-0.5">
           {count}
@@ -56,12 +58,12 @@ function AccountControls() {
       <>
         <CartLink />
         <NavLink to={PATHS.LOGIN} className={navLinkClass}>
-          Sign in
+          {t('Sign in')}
         </NavLink>
         {/* Wrapper controls visibility: Button always sets its own display. */}
         <span className="hidden lg:block">
           <Button to={PATHS.SIGNUP} variant="accent" size="sm">
-            Create account
+            {t('Create account')}
           </Button>
         </span>
       </>
@@ -75,23 +77,23 @@ function AccountControls() {
     <>
       {role === ROLES.FARMER && (
         <NavLink to={PATHS.FARMER} className={navLinkClass}>
-          Dashboard
+          {t('Dashboard')}
         </NavLink>
       )}
       {role === ROLES.ADMIN && (
         <NavLink to={PATHS.ADMIN} className={navLinkClass}>
-          Admin
+          {t('Admin')}
         </NavLink>
       )}
       {role === ROLES.CUSTOMER && (
         <NavLink to={PATHS.ORDERS} className={(state) => `${navLinkClass(state)} hidden sm:block`}>
-          Orders
+          {t('Orders')}
         </NavLink>
       )}
       {role === ROLES.CUSTOMER && <CartLink />}
       <NavLink to={PATHS.ACCOUNT} className={navLinkClass}>
-        <span className="hidden sm:inline">{firstName ? `Hi, ${firstName}` : 'Account'}</span>
-        <span className="sm:hidden">Account</span>
+        <span className="hidden sm:inline">{firstName ? t('Hi, {name}', { name: firstName }) : t('Account')}</span>
+        <span className="sm:hidden">{t('Account')}</span>
       </NavLink>
       <button
         type="button"
@@ -99,7 +101,7 @@ function AccountControls() {
         disabled={signingOut}
         className="hidden rounded-md px-3 py-2 text-sm font-medium text-brand-50 transition-colors hover:bg-brand-600 hover:text-white disabled:opacity-60 sm:block"
       >
-        Sign out
+        {t('Sign out')}
       </button>
     </>
   )
@@ -119,7 +121,7 @@ function CategoryStrip() {
     }`
 
   return (
-    <nav aria-label="Categories" className="border-b border-cream-200 bg-white">
+    <nav aria-label={t('Categories')} className="border-b border-cream-200 bg-white">
       <Container>
         <ul className="-mx-1 flex gap-1 relative overflow-x-auto py-2">
           <li>
@@ -127,7 +129,7 @@ function CategoryStrip() {
               to={PATHS.PRODUCTS}
               className={() => linkClass(onListing && !activeCategory)}
             >
-              All products
+              {t('All products')}
             </NavLink>
           </li>
           {activeCategories.map((category) => (
@@ -136,13 +138,13 @@ function CategoryStrip() {
                 to={productsPath({ category: category.value })}
                 className={() => linkClass(activeCategory === category.value)}
               >
-                {category.label}
+                {getCategoryLabel(category.value)}
               </NavLink>
             </li>
           ))}
           <li>
             <NavLink to={PATHS.FARMS} className={({ isActive }) => linkClass(isActive)}>
-              Our farmers
+              {t('Our farmers')}
             </NavLink>
           </li>
         </ul>
@@ -167,12 +169,14 @@ export default function Navbar() {
             initialQuery={currentQuery}
             className="hidden max-w-2xl md:flex"
           />
-          <nav aria-label="Account" className="flex shrink-0 items-center gap-1">
+          <nav aria-label={t('Account')} className="flex shrink-0 items-center gap-1">
+            <LanguageSwitcher tone="dark" className="mr-1 hidden md:flex" />
             <AccountControls />
           </nav>
         </Container>
-        <Container className="pb-3 md:hidden">
-          <SearchBar key={`mobile-${currentQuery}`} initialQuery={currentQuery} className="flex" />
+        <Container className="flex items-center gap-2 pb-3 md:hidden">
+          <SearchBar key={`mobile-${currentQuery}`} initialQuery={currentQuery} className="flex min-w-0 flex-1" />
+          <LanguageSwitcher tone="dark" className="shrink-0" />
         </Container>
       </header>
       <CategoryStrip />

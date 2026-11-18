@@ -17,6 +17,7 @@ import {
   validatePassword,
   validatePhone,
 } from '../../utils/validators'
+import { t } from '../../i18n'
 
 const INITIAL_FORM = {
   role: ROLES.CUSTOMER,
@@ -34,7 +35,7 @@ function validate(form) {
     phone: validatePhone(form.phone),
     password: validatePassword(form.password),
     confirmPassword:
-      form.confirmPassword === form.password ? '' : 'Passwords do not match.',
+      form.confirmPassword === form.password ? '' : t('Passwords do not match.'),
   }
 }
 
@@ -73,17 +74,17 @@ export default function SignupPage() {
 
   return (
     <AuthCard
-      title="Create your account"
-      subtitle="Join Farm To Home in less than a minute."
+      title={t('Create your account')}
+      subtitle={t('Join Farm To Home in less than a minute.')}
       footer={
         <>
-          Already have an account?{' '}
+          {t('Already have an account?')}{' '}
           <Link
             to={PATHS.LOGIN}
             state={location.state}
             className="font-semibold text-brand-700 hover:underline"
           >
-            Sign in
+            {t('Sign in')}
           </Link>
         </>
       }
@@ -94,7 +95,7 @@ export default function SignupPage() {
         <RoleSelector value={form.role} onChange={handleChange} />
 
         <Input
-          label={isFarmer ? 'Your full name (as the farm owner)' : 'Full name'}
+          label={isFarmer ? t('Your full name (as the farm owner)') : t('Full name')}
           name="name"
           autoComplete="name"
           value={form.name}
@@ -102,7 +103,7 @@ export default function SignupPage() {
           error={errors.name}
         />
         <Input
-          label="Email"
+          label={t('Email')}
           name="email"
           type="email"
           autoComplete="email"
@@ -111,7 +112,7 @@ export default function SignupPage() {
           error={errors.email}
         />
         <Input
-          label="Mobile number (optional)"
+          label={t('Mobile number (optional)')}
           name="phone"
           type="tel"
           inputMode="tel"
@@ -122,16 +123,16 @@ export default function SignupPage() {
           error={errors.phone}
         />
         <PasswordInput
-          label="Password"
+          label={t('Password')}
           name="password"
           autoComplete="new-password"
           value={form.password}
           onChange={handleChange}
           error={errors.password}
-          hint={`At least ${PASSWORD_MIN_LENGTH} characters, with a letter and a number.`}
+          hint={t('At least {count} characters, with a letter and a number.', { count: PASSWORD_MIN_LENGTH })}
         />
         <PasswordInput
-          label="Confirm password"
+          label={t('Confirm password')}
           name="confirmPassword"
           autoComplete="new-password"
           value={form.confirmPassword}
@@ -141,13 +142,12 @@ export default function SignupPage() {
 
         {isFarmer && (
           <Alert variant="info">
-            You can start listing products as soon as you sign up — just set up your farm
-            profile first so customers know who they’re buying from.
+            {t('You can start listing products as soon as you sign up — just set up your farm profile first so customers know who they’re buying from.')}
           </Alert>
         )}
 
         <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? 'Creating account…' : 'Create account'}
+          {submitting ? t('Creating account…') : t('Create account')}
         </Button>
       </form>
     </AuthCard>

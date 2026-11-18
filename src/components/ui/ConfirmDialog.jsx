@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import Button from './Button'
+import { t } from '../../i18n'
 
 /**
  * "Are you sure?" popup using the browser's built-in <dialog>,
@@ -9,8 +10,8 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel = t('Confirm'),
+  cancelLabel = t('Cancel'),
   confirmVariant = 'danger',
   busy = false,
   onConfirm,
@@ -42,7 +43,7 @@ export default function ConfirmDialog({
             {cancelLabel}
           </Button>
           <Button variant={confirmVariant} onClick={onConfirm} disabled={busy}>
-            {busy ? 'Please wait…' : confirmLabel}
+            {busy ? t('Please wait…') : confirmLabel}
           </Button>
         </div>
       </div>

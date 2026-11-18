@@ -17,16 +17,20 @@ import {
   countByCategory,
   filterProducts,
   filtersToParams,
+  findPriceRange,
   parseFilters,
   SORT_OPTIONS,
 } from '../../utils/marketplace'
+import { t, tp } from '../../i18n'
 
 const PAGE_SIZE = 40
 
 function priceLabel(min, max) {
+  const preset = findPriceRange(min, max)
+  if (preset) return t(preset.label)
   if (min != null && max != null) return `${formatPrice(min)} – ${formatPrice(max)}`
-  if (min != null) return `${formatPrice(min)} and above`
-  return `Under ${formatPrice(max)}`
+  if (min != null) return t('{price} and above', { price: formatPrice(min) })
+  return t('Under {price}', { price: formatPrice(max) })
 }
 
 /** Removable chips for the active filters. */
@@ -49,7 +53,7 @@ function ActiveFilters({ filters, onChange, onClearAll }) {
           type="button"
           onClick={() => onChange(chip.clear)}
           className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-sm text-brand-800 hover:bg-brand-100"
-          aria-label={`Remove filter ${chip.label}`}
+          aria-label={t('Remove filter {filter}', { filter: chip.label })}
         >
           {chip.label}
           <span aria-hidden="true">×</span>
@@ -61,7 +65,7 @@ function ActiveFilters({ filters, onChange, onClearAll }) {
           onClick={onClearAll}
           className="text-sm font-medium text-brand-700 hover:underline"
         >
-          Clear all
+          {t('Clear all')}
         </button>
       )}
     </div>
@@ -77,7 +81,7 @@ function Results({ products }) {
       {visible < products.length && (
         <div className="mt-6 text-center">
           <Button variant="outline" onClick={() => setVisible((n) => n + PAGE_SIZE)}>
-            Show more ({products.length - visible} left)
+            {t('Show more ({count} left)', { count: products.length - visible })}
           </Button>
         </div>
       )}
@@ -98,6 +102,16 @@ export default function ProductsPage() {
     () => (products ? filterProducts(products, filters) : []),
     [products, filters],
   )
+  // Sidebar categories: the active ones from the categories collection, plus any
+  // category that products are actually listed in (so filtering works even if a
+  // category document is missing, hidden or still loading), plus the selected one.
+  const filterCategories = useMemo(() => {
+    const values = activeCategories.map((c) => c.value)
+    if (products) Object.keys(countByCategory(products)).forEach((v) => values.push(v))
+    if (filters.category) values.push(filters.category)
+    return [...new Set(values)].filter(Boolean).map((value) => ({ value, label: getCategoryLabel(value) }))
+  }, [activeCategories, products, filters.category])
+
   // Category counts for the current search + price (ignoring the category itself).
   const categoryCounts = useMemo(
     () => (products ? countByCategory(filterProducts(products, { ...filters, category: '' })) : {}),
@@ -113,19 +127,19 @@ export default function ProductsPage() {
     (filters.category ? 1 : 0) + (filters.min != null || filters.max != null ? 1 : 0)
 
   const title = filters.q
-    ? `Results for “${filters.q}”`
+    ? t('Results for “{query}”', { query: filters.q })
     : filters.category
       ? getCategoryLabel(filters.category)
-      : 'All products'
+      : t('All products')
 
   return (
     <Container className="py-6">
       <Breadcrumbs
         items={[
-          { label: 'Home', to: PATHS.HOME },
+          { label: t('Home'), to: PATHS.HOME },
           filters.category || filters.q
-            ? { label: 'All products', to: PATHS.PRODUCTS }
-            : { label: 'All products' },
+            ? { label: t('All products'), to: PATHS.PRODUCTS }
+            : { label: t('All products') },
           ...(filters.category || filters.q ? [{ label: title }] : []),
         ]}
       />
@@ -138,7 +152,7 @@ export default function ProductsPage() {
         >
           <FilterPanel
             filters={filters}
-            categories={activeCategories}
+            categories={filterCategories}
             categoryCounts={categoryCounts}
             onChange={updateFilters}
           />
@@ -152,7 +166,7 @@ export default function ProductsPage() {
               </h1>
               {products && (
                 <p className="text-sm text-gray-600" aria-live="polite">
-                  {results.length} {results.length === 1 ? 'product' : 'products'}
+                  {tp(results.length, '{count} product', '{count} products')}
                 </p>
               )}
             </div>
@@ -165,11 +179,11 @@ export default function ProductsPage() {
                 aria-controls="product-filters"
                 onClick={() => setShowFilters((v) => !v)}
               >
-                {showFilters ? 'Hide filters' : 'Filters'}
+                {showFilters ? t('Hide filters') : t('Filters')}
                 {activeFilterCount > 0 && ` (${activeFilterCount})`}
               </Button>
               <label htmlFor="sort" className="sr-only">
-                Sort by
+                {t('Sort by')}
               </label>
               <select
                 id="sort"
@@ -179,7 +193,7 @@ export default function ProductsPage() {
               >
                 {SORT_OPTIONS.filter((o) => o.value !== 'relevance' || filters.q).map((option) => (
                   <option key={option.value} value={option.value}>
-                    Sort: {option.label}
+                    {t('Sort: {option}', { option: t(option.label) })}
                   </option>
                 ))}
               </select>
@@ -194,14 +208,14 @@ export default function ProductsPage() {
             <ProductGridSkeleton count={10} />
           ) : products.length === 0 ? (
             <EmptyState
-              title="No products in the store yet"
-              message="Farmers haven’t listed any products yet. Please check back soon."
+              title={t('No products in the store yet')}
+              message={t('Farmers haven’t listed any products yet. Please check back soon.')}
             />
           ) : results.length === 0 ? (
             <EmptyState
-              title="No products match your filters"
-              message="Try a different search word, another category or a wider price range."
-              action={<Button onClick={clearAll}>Clear all filters</Button>}
+              title={t('No products match your filters')}
+              message={t('Try a different search word, another category or a wider price range.')}
+              action={<Button onClick={clearAll}>{t('Clear all filters')}</Button>}
             />
           ) : (
             // key: start from the first page whenever the filters change

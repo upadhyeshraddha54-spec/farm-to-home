@@ -12,9 +12,10 @@ import useAsync from '../../hooks/useAsync'
 import useToast from '../../hooks/useToast'
 import { farmPath } from '../../routes/paths'
 import { fetchFarmsById, setFarmerStatus } from '../../services/adminService'
-import { FARMER_STATUS, FARMER_STATUS_LABELS, normalizeFarmerStatus, ROLES } from '../../utils/constants'
+import { FARMER_STATUS, getFarmerStatusLabel, getStateLabel, normalizeFarmerStatus, ROLES } from '../../utils/constants'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { formatDate, formatPhone } from '../../utils/formatters'
+import { msg, t, tp } from '../../i18n'
 
 const TABS = [FARMER_STATUS.ACTIVE, FARMER_STATUS.SUSPENDED]
 
@@ -25,13 +26,13 @@ const STATUS_STYLES = {
 
 // Which actions make sense from each status.
 const ACTIONS = {
-  active: [{ to: FARMER_STATUS.SUSPENDED, label: 'Suspend', variant: 'outline' }],
-  suspended: [{ to: FARMER_STATUS.ACTIVE, label: 'Reinstate', variant: 'primary' }],
+  active: [{ to: FARMER_STATUS.SUSPENDED, label: msg('Suspend'), variant: 'outline' }],
+  suspended: [{ to: FARMER_STATUS.ACTIVE, label: msg('Reinstate'), variant: 'primary' }],
 }
 
 const CONFIRM_TEXT = {
-  active: 'They can list products again. Products hidden by the suspension are listed again.',
-  suspended: 'All their listed products are hidden from the store immediately, and they can’t add or edit products. Existing orders can still be fulfilled.',
+  active: msg('They can list products again. Products hidden by the suspension are listed again.'),
+  suspended: msg('All their listed products are hidden from the store immediately, and they can’t add or edit products. Existing orders can still be fulfilled.'),
 }
 
 export default function AdminFarmersPage() {
@@ -50,8 +51,10 @@ export default function AdminFarmersPage() {
     try {
       const changed = await setFarmerStatus(pending.farmer.id, pending.to)
       toast.success(
-        `${pending.farmer.name} is now ${FARMER_STATUS_LABELS[pending.to].toLowerCase()}` +
-          (changed ? ` · ${changed} product${changed === 1 ? '' : 's'} updated` : ''),
+        (pending.to === FARMER_STATUS.SUSPENDED
+          ? t('{name} is now suspended.', { name: pending.farmer.name })
+          : t('{name} is now active.', { name: pending.farmer.name })) +
+          (changed ? ' ' + tp(changed, '{count} product updated.', '{count} products updated.') : ''),
       )
     } catch (error) {
       toast.error(getFriendlyErrorMessage(error))
@@ -63,26 +66,26 @@ export default function AdminFarmersPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageMeta title="Farmers" noIndex />
+      <PageMeta title={t('Farmers')} noIndex />
       <PageHeader
-        title="Farmers"
-        subtitle="Farmers can sell as soon as they sign up. Suspend a farmer to hide all their products."
+        title={t('Farmers')}
+        subtitle={t('Farmers can sell as soon as they sign up. Suspend a farmer to hide all their products.')}
       />
 
-      <div className="mb-4 flex gap-2 relative overflow-x-auto pb-1" role="tablist" aria-label="Farmer status">
-        {TABS.map((t) => (
+      <div className="mb-4 flex gap-2 relative overflow-x-auto pb-1" role="tablist" aria-label={t('Farmer status')}>
+        {TABS.map((item) => (
           <button
-            key={t}
+            key={item}
             type="button"
             role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
+            aria-selected={tab === item}
+            onClick={() => setTab(item)}
             className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium ${
-              tab === t ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-brand-300'
+              tab === item ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-brand-300'
             }`}
           >
-            {FARMER_STATUS_LABELS[t]}{' '}
-            <span className="opacity-70">{farmers.filter((f) => normalizeFarmerStatus(f.farmerStatus) === t).length}</span>
+            {getFarmerStatusLabel(item)}{' '}
+            <span className="opacity-70">{farmers.filter((f) => normalizeFarmerStatus(f.farmerStatus) === item).length}</span>
           </button>
         ))}
       </div>
@@ -92,7 +95,7 @@ export default function AdminFarmersPage() {
       ) : usersLoading ? (
         <Spinner fullPage />
       ) : shown.length === 0 ? (
-        <EmptyState title="No farmers here" message={`There are no ${FARMER_STATUS_LABELS[tab].toLowerCase()} farmers.`} />
+        <EmptyState title={t('No farmers here')} message={tab === FARMER_STATUS.SUSPENDED ? t('There are no suspended farmers.') : t('There are no active farmers.')} />
       ) : (
         <ul className="space-y-3">
           {shown.map((farmer) => {
@@ -104,7 +107,7 @@ export default function AdminFarmersPage() {
                   <p className="flex flex-wrap items-center gap-2 font-semibold text-gray-900">
                     {farmer.name}
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>
-                      {FARMER_STATUS_LABELS[status]}
+                      {getFarmerStatusLabel(status)}
                     </span>
                   </p>
                   <p className="text-sm text-gray-600">
@@ -114,17 +117,17 @@ export default function AdminFarmersPage() {
                   <p className="mt-1 text-sm text-gray-700">
                     {farm ? (
                       <>
-                        <span className="font-medium">{farm.farmName}</span> · {farm.city}, {farm.state}{' '}
+                        <span className="font-medium">{farm.farmName}</span> · {farm.city}, {getStateLabel(farm.state)}{' '}
                         {status === FARMER_STATUS.ACTIVE && (
-                          <Link to={farmPath(farmer.id)} className="text-brand-700 hover:underline">(public page)</Link>
+                          <Link to={farmPath(farmer.id)} className="text-brand-700 hover:underline">{t('(public page)')}</Link>
                         )}
                       </>
                     ) : (
-                      <span className="text-gray-500">Farm profile not set up yet</span>
+                      <span className="text-gray-500">{t('Farm profile not set up yet')}</span>
                     )}
                   </p>
                   {farm?.description && <p className="mt-1 line-clamp-2 max-w-xl text-xs text-gray-500">{farm.description}</p>}
-                  <p className="mt-1 text-xs text-gray-500">Joined {formatDate(farmer.createdAt)}</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('Joined {date}', { date: formatDate(farmer.createdAt) })}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {ACTIONS[status].map((action) => (
@@ -134,7 +137,7 @@ export default function AdminFarmersPage() {
                       variant={action.variant}
                       onClick={() => setPending({ farmer, to: action.to, label: action.label })}
                     >
-                      {action.label}
+                      {t(action.label)}
                     </Button>
                   ))}
                 </div>
@@ -146,9 +149,15 @@ export default function AdminFarmersPage() {
 
       <ConfirmDialog
         open={Boolean(pending)}
-        title={pending ? `${pending.label} ${pending.farmer.name}?` : ''}
-        message={pending ? CONFIRM_TEXT[pending.to] : ''}
-        confirmLabel={pending?.label ?? 'Confirm'}
+        title={
+          pending
+            ? pending.to === FARMER_STATUS.SUSPENDED
+              ? t('Suspend {name}?', { name: pending.farmer.name })
+              : t('Reinstate {name}?', { name: pending.farmer.name })
+            : ''
+        }
+        message={pending ? t(CONFIRM_TEXT[pending.to]) : ''}
+        confirmLabel={pending ? t(pending.label) : t('Confirm')}
         confirmVariant={pending?.to === FARMER_STATUS.ACTIVE ? 'primary' : 'danger'}
         busy={busy}
         onConfirm={apply}

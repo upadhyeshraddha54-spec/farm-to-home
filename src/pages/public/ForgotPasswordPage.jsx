@@ -8,6 +8,7 @@ import { PATHS } from '../../routes/paths'
 import { resetPassword } from '../../services/authService'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { validateEmail } from '../../utils/validators'
+import { t, tx } from '../../i18n'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -42,24 +43,25 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthCard
-      title="Reset your password"
-      subtitle="We’ll email you a link to choose a new password."
+      title={t('Reset your password')}
+      subtitle={t('We’ll email you a link to choose a new password.')}
       footer={
         <Link to={PATHS.LOGIN} className="font-semibold text-brand-700 hover:underline">
-          Back to sign in
+          {t('Back to sign in')}
         </Link>
       }
     >
       {sent ? (
-        <Alert variant="success" title="Check your inbox">
-          If an account exists for <strong>{email.trim()}</strong>, a password reset link
-          has been sent. It may take a few minutes, so check your spam folder too.
+        <Alert variant="success" title={t('Check your inbox')}>
+          {tx('If an account exists for {email}, a password reset link has been sent. It may take a few minutes, so check your spam folder too.', {
+            email: <strong>{email.trim()}</strong>,
+          })}
         </Alert>
       ) : (
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {formError && <Alert variant="error">{formError}</Alert>}
           <Input
-            label="Email"
+            label={t('Email')}
             name="email"
             type="email"
             autoComplete="email"
@@ -71,7 +73,7 @@ export default function ForgotPasswordPage() {
             error={emailError}
           />
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? 'Sending…' : 'Send reset link'}
+            {submitting ? t('Sending…') : t('Send reset link')}
           </Button>
         </form>
       )}

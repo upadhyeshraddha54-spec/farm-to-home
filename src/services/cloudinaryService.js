@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import {
   CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_UPLOAD_PRESET,
@@ -8,10 +9,10 @@ import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_MB } from '../utils/constants'
 /** Returns an error message for an unacceptable file, or '' if it's fine. */
 export function validateImageFile(file) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return `"${file.name}" is not a JPG, PNG or WebP image.`
+    return t('“{name}” is not a JPG, PNG or WebP image.', { name: file.name })
   }
   if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-    return `"${file.name}" is larger than ${MAX_IMAGE_SIZE_MB} MB.`
+    return t('“{name}” is larger than {size} MB.', { name: file.name, size: MAX_IMAGE_SIZE_MB })
   }
   return ''
 }
@@ -24,7 +25,7 @@ export function validateImageFile(file) {
 export function uploadImage(file, onProgress) {
   return new Promise((resolve, reject) => {
     if (!isCloudinaryConfigured) {
-      reject(new Error('Image uploads are not configured.'))
+      reject(new Error(t('Image uploads are not configured.')))
       return
     }
 
@@ -52,11 +53,11 @@ export function uploadImage(file, onProgress) {
       if (xhr.status >= 200 && xhr.status < 300 && body?.secure_url) {
         resolve({ url: body.secure_url, publicId: body.public_id })
       } else {
-        reject(new Error(body?.error?.message ?? 'Image upload failed. Please try again.'))
+        reject(new Error(t('Image upload failed. Please try again.')))
       }
     }
 
-    xhr.onerror = () => reject(new Error('Network error while uploading. Please try again.'))
+    xhr.onerror = () => reject(new Error(t('Network error while uploading. Please try again.')))
     xhr.send(formData)
   })
 }

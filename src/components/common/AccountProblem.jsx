@@ -3,6 +3,7 @@ import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import Alert from '../ui/Alert'
 import Button from '../ui/Button'
 import Container from '../ui/Container'
+import { t } from '../../i18n'
 
 /**
  * Shown when someone is signed in but their profile (users/{uid}) can't be
@@ -14,16 +15,16 @@ export default function AccountProblem({ error }) {
 
   return (
     <Container className="max-w-lg py-16">
-      <Alert variant="error" title="We couldn't load your account">
+      <Alert variant="error" title={t('We couldn\'t load your account')}>
         <p>
           {error
             ? getFriendlyErrorMessage(error)
-            : 'Your account profile was not found.'}{' '}
-          Please sign out and try again. If this keeps happening, contact support.
+            : t('Your account profile was not found.')}{' '}
+          {t('Please sign out and try again. If this keeps happening, contact support.')}
         </p>
       </Alert>
       <Button variant="outline" className="mt-6" onClick={signOut} disabled={signingOut}>
-        {signingOut ? 'Signing out…' : 'Sign out'}
+        {signingOut ? t('Signing out…') : t('Sign out')}
       </Button>
     </Container>
   )

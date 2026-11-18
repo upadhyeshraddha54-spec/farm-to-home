@@ -7,6 +7,7 @@ import Spinner from '../../components/ui/Spinner'
 import useFarmerData from '../../hooks/useFarmerData'
 import { PATHS } from '../../routes/paths'
 import { createProduct } from '../../services/productService'
+import { t } from '../../i18n'
 
 export default function ProductCreatePage() {
   const navigate = useNavigate()
@@ -18,9 +19,9 @@ export default function ProductCreatePage() {
   if (!farm) {
     return (
       <EmptyState
-        title="Set up your farm profile first"
-        message="Customers see your farm name and location on every product. Add them before listing products."
-        action={<Button to={PATHS.FARMER_PROFILE}>Set up farm profile</Button>}
+        title={t('Set up your farm profile first')}
+        message={t('Customers see your farm name and location on every product. Add them before listing products.')}
+        action={<Button to={PATHS.FARMER_PROFILE}>{t('Set up farm profile')}</Button>}
       />
     )
   }
@@ -28,15 +29,15 @@ export default function ProductCreatePage() {
   async function handleSubmit(values) {
     await createProduct(uid, farm, values)
     navigate(PATHS.FARMER_PRODUCTS, {
-      state: { notice: `“${values.name.trim()}” was added.` },
+      state: { notice: t('“{product}” was added.', { product: values.name.trim() }) },
     })
   }
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Add product" subtitle={`Listing for ${farm.farmName}`} />
+      <PageHeader title={t('Add product')} subtitle={t('Listing for {farm}', { farm: farm.farmName })} />
       <ProductForm
-        submitLabel="Add product"
+        submitLabel={t('Add product')}
         onSubmit={handleSubmit}
         onCancel={() => navigate(PATHS.FARMER_PRODUCTS)}
       />

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { ToastContext } from './toastContext'
+import { t } from '../i18n'
 
 const DURATION_MS = 4500
 const STYLES = {
@@ -63,7 +64,7 @@ export default function ToastProvider({ children }) {
               type="button"
               onClick={() => dismiss(toast.id)}
               className="-mr-1 rounded px-1 text-gray-400 hover:text-gray-700"
-              aria-label="Dismiss notification"
+              aria-label={t('Dismiss notification')}
             >
               ×
             </button>

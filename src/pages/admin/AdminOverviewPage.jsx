@@ -14,6 +14,7 @@ import { fetchAdminCounts } from '../../services/adminService'
 import { ORDER_STATUS } from '../../utils/constants'
 import { formatDateTime } from '../../utils/formatters'
 import { formatPaise, getFarmerPart, getOverallStatus, shortOrderId } from '../../utils/orders'
+import { t, tp } from '../../i18n'
 
 /** Delivered value (cash collected) across the loaded orders. */
 function deliveredValue(orders) {
@@ -38,13 +39,13 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <PageMeta title="Admin" noIndex />
-      <PageHeader title="Admin overview" subtitle="The whole marketplace at a glance." />
+      <PageMeta title={t('Admin')} noIndex />
+      <PageHeader title={t('Admin overview')} subtitle={t('The whole marketplace at a glance.')} />
 
       {!categoriesLoading && categories.length === 0 && (
-        <Alert variant="warning" title="No product categories yet">
-          Farmers can’t list products until categories exist.{' '}
-          <Link to={PATHS.ADMIN_CATEGORIES} className="font-semibold underline">Set up categories</Link>
+        <Alert variant="warning" title={t('No product categories yet')}>
+          {t('Farmers can’t list products until categories exist.')}{' '}
+          <Link to={PATHS.ADMIN_CATEGORIES} className="font-semibold underline">{t('Set up categories')}</Link>
         </Alert>
       )}
 
@@ -55,17 +56,17 @@ export default function AdminOverviewPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Customers" value={counts.data.customers} />
-            <StatCard label="Farmers" value={counts.data.farmers} hint={counts.data.suspendedFarmers ? `${counts.data.suspendedFarmers} suspended` : 'all active'} />
-            <StatCard label="Listed products" value={counts.data.listedProducts} tone="brand" hint={`${counts.data.hiddenProducts} hidden`} />
-            <StatCard label="Orders" value={counts.data.orders} hint={`${counts.data.newMessages} new messages`} />
+            <StatCard label={t('Customers')} value={counts.data.customers} />
+            <StatCard label={t('Farmers')} value={counts.data.farmers} hint={counts.data.suspendedFarmers ? t('{count} suspended', { count: counts.data.suspendedFarmers }) : t('all active')} />
+            <StatCard label={t('Listed products')} value={counts.data.listedProducts} tone="brand" hint={t('{count} hidden', { count: counts.data.hiddenProducts })} />
+            <StatCard label={t('Orders')} value={counts.data.orders} hint={tp(counts.data.newMessages, '{count} new message', '{count} new messages')} />
           </div>
         </>
       )}
 
       <section>
         <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
-          Recent orders
+          {t('Recent orders')}
         </h2>
         {ordersError ? (
           <LoadError error={ordersError} />
@@ -74,11 +75,11 @@ export default function AdminOverviewPage() {
         ) : (
           <>
             <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <StatCard label="Delivered value" value={formatPaise(deliveredValue(orders))} tone="brand" hint={`Last ${orders.length} orders`} />
-              <StatCard label="Open orders" value={open} tone="warning" />
+              <StatCard label={t('Delivered value')} value={formatPaise(deliveredValue(orders))} tone="brand" hint={tp(orders.length, 'Last {count} order', 'Last {count} orders')} />
+              <StatCard label={t('Open orders')} value={open} tone="warning" />
             </div>
             {orders.length === 0 ? (
-              <p className="text-sm text-gray-500">No orders yet.</p>
+              <p className="text-sm text-gray-500">{t('No orders yet.')}</p>
             ) : (
               <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-cream-200 bg-white shadow-sm">
                 {orders.slice(0, 8).map((order) => (

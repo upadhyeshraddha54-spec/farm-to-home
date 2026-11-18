@@ -11,4 +11,4 @@ export const SITE = Object.freeze({
 })
 
 // Date the policy pages were last reviewed. Update when you change them.
-export const POLICIES_UPDATED = '12 November 2026'
+export const POLICIES_UPDATED = '2026-11-12' // ISO date, shown in the reader's language

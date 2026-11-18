@@ -1,6 +1,8 @@
 import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore'
 import { db } from '../config/firebase'
+import { getLanguage } from '../i18n'
 import { attachRatings, ratingsByKey, summarizeReviews } from '../utils/reviews'
+import { loadFarmNames, rememberFarms } from './nameService'
 import { fetchAllReviews, fetchFarmReviews, fetchProductReviews, reviewsOrNone } from './reviewService'
 
 /*
@@ -47,8 +49,15 @@ async function loadVisibleProducts() {
 }
 
 /** All visible products with ratings, newest first. */
+// Translated farm names for product cards (not needed in English).
+const farmNamesIfNeeded = () => (getLanguage() === 'en' ? null : loadFarmNames())
+
 export async function fetchCatalog() {
-  const [products, reviews] = await Promise.all([loadVisibleProducts(), reviewsOrNone(fetchAllReviews())])
+  const [products, reviews] = await Promise.all([
+    loadVisibleProducts(),
+    reviewsOrNone(fetchAllReviews()),
+    farmNamesIfNeeded(),
+  ])
   return attachRatings(products, ratingsByKey(reviews, 'productId'))
 }
 
@@ -95,6 +104,7 @@ export async function fetchStorefront() {
     reviewsOrNone(fetchAllReviews()),
   ])
   const products = attachRatings(rawProducts, ratingsByKey(reviews, 'productId'))
+  rememberFarms(farmsSnap.docs.map(toDoc))
   const farms = summariseFarms(farmsSnap.docs.map(toDoc), products, ratingsByKey(reviews, 'farmerId'))
   return { products, farms }
 }
@@ -119,6 +129,7 @@ export async function fetchProductPage(productId) {
         limit(24),
       ),
     ),
+    farmNamesIfNeeded(), // "similar" products come from other farms
   ])
 
   const others = (list) => list.filter((p) => p.id !== product.id && isInStock(p))
@@ -145,6 +156,7 @@ export async function fetchFarmPage(farmId) {
     reviewsOrNone(fetchFarmReviews(farmId)),
   ])
   if (!farm || listed.length === 0) return null
+  rememberFarms([farm])
   return {
     farm: { ...farm, rating: summarizeReviews(reviews) },
     products: attachRatings(listed.filter(isInStock), ratingsByKey(reviews, 'productId')),

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import useCategories from '../../hooks/useCategories'
-import { getCategoryLabel, getUnitLabel, PRODUCT_UNITS } from '../../utils/constants'
+import { getCategoryLabel, getStockLabel, getUnitLabel, getUnitOptions } from '../../utils/constants'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { formatPrice, getDiscountPercent } from '../../utils/formatters'
 import { EMPTY_PRODUCT, PRODUCT_LIMITS, validateProduct } from '../../utils/productValidation'
@@ -11,7 +11,9 @@ import Input from '../ui/Input'
 import Select from '../ui/Select'
 import Switch from '../ui/Switch'
 import Textarea from '../ui/Textarea'
+import TranslationFields from '../common/TranslationFields'
 import ImageUploader from './ImageUploader'
+import { t } from '../../i18n'
 
 /**
  * Add / edit product form.
@@ -30,10 +32,10 @@ export default function ProductForm({
   // Active categories, plus the product's current one if it has since been
   // switched off (keeping it unchanged is allowed).
   const categoryOptions = useMemo(() => {
-    const options = activeCategories.map((c) => ({ value: c.value, label: c.label }))
+    const options = activeCategories.map((c) => ({ value: c.value, label: getCategoryLabel(c.value) }))
     const current = initialValues.category
     if (current && !options.some((c) => c.value === current)) {
-      options.push({ value: current, label: `${getCategoryLabel(current)} (no longer offered)` })
+      options.push({ value: current, label: t('{category} (no longer offered)', { category: getCategoryLabel(current) }) })
     }
     return options
   }, [activeCategories, initialValues.category])
@@ -48,6 +50,14 @@ export default function ProductForm({
     setErrors((prev) => ({ ...prev, [name]: '' }))
   }
 
+  function handleTranslationChange(code, field, value) {
+    setValues((prev) => ({
+      ...prev,
+      translations: { ...prev.translations, [code]: { ...prev.translations?.[code], [field]: value } },
+    }))
+    setErrors((prev) => ({ ...prev, translations: '' }))
+  }
+
   const setImages = useCallback((updater) => {
     setValues((prev) => ({ ...prev, images: updater(prev.images) }))
     setErrors((prev) => ({ ...prev, images: '' }))
@@ -60,7 +70,7 @@ export default function ProductForm({
     const nextErrors = validateProduct(values, categoryOptions)
     setErrors(nextErrors)
     if (!hasNoErrors(nextErrors)) {
-      setFormError('Please fix the highlighted fields.')
+      setFormError(t('Please fix the highlighted fields.'))
       return
     }
 
@@ -81,38 +91,47 @@ export default function ProductForm({
       {formError && <Alert variant="error">{formError}</Alert>}
 
       <section className="space-y-4 rounded-xl border border-cream-200 bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-base font-semibold text-gray-900">Product details</h2>
+        <h2 className="text-base font-semibold text-gray-900">{t('Product details')}</h2>
         <Input
-          label="Product name"
+          label={t('Product name')}
           name="name"
-          placeholder="e.g. Organic Tomatoes"
+          placeholder={t('e.g. Organic Tomatoes')}
           maxLength={PRODUCT_LIMITS.NAME_MAX}
           value={values.name}
           onChange={handleChange}
           error={errors.name}
         />
         <Select
-          label="Category"
+          label={t('Category')}
           name="category"
-          placeholder="Select a category"
+          placeholder={t('Select a category')}
           options={categoryOptions}
           value={values.category}
           onChange={handleChange}
           error={
             errors.category ||
             (!categoriesLoading && categoryOptions.length === 0
-              ? 'Categories are being set up — this usually takes a moment. If this message stays, please reload the page or contact support.'
+              ? t('Categories are being set up — this usually takes a moment. If this message stays, please reload the page or contact support.')
               : '')
           }
         />
         <Textarea
-          label="Description (optional)"
+          label={t('Description (optional)')}
           name="description"
-          placeholder="How it’s grown, taste, freshness, storage tips…"
+          placeholder={t('How it’s grown, taste, freshness, storage tips…')}
           maxLength={PRODUCT_LIMITS.DESCRIPTION_MAX}
           value={values.description}
           onChange={handleChange}
           error={errors.description}
+        />
+        <TranslationFields
+          fields={[
+            { name: 'name', label: t('Product name'), maxLength: PRODUCT_LIMITS.NAME_MAX },
+            { name: 'description', label: t('Description'), multiline: true, maxLength: PRODUCT_LIMITS.DESCRIPTION_MAX },
+          ]}
+          values={values.translations}
+          onChange={handleTranslationChange}
+          error={errors.translations}
         />
       </section>
 
@@ -126,18 +145,18 @@ export default function ProductForm({
       </section>
 
       <section className="space-y-4 rounded-xl border border-cream-200 bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-base font-semibold text-gray-900">Price & stock</h2>
+        <h2 className="text-base font-semibold text-gray-900">{t('Price & stock')}</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <Select
-            label="Sold"
+            label={t('Sold')}
             name="unit"
-            options={PRODUCT_UNITS}
+            options={getUnitOptions()}
             value={values.unit}
             onChange={handleChange}
             error={errors.unit}
           />
           <Input
-            label="Selling price (₹)"
+            label={t('Selling price (₹)')}
             name="price"
             inputMode="decimal"
             placeholder="40"
@@ -146,18 +165,18 @@ export default function ProductForm({
             error={errors.price}
           />
           <Input
-            label="MRP (₹, optional)"
+            label={t('MRP (₹, optional)')}
             name="mrp"
             inputMode="decimal"
             placeholder="50"
             value={values.mrp}
             onChange={handleChange}
             error={errors.mrp}
-            hint="Shows a discount if higher than your price."
+            hint={t('Shows a discount if higher than your price.')}
           />
         </div>
         <Input
-          label={`Stock available (${getUnitLabel(values.unit).replace('per ', 'number of ')})`}
+          label={getStockLabel(values.unit)}
           name="stock"
           inputMode="numeric"
           placeholder="100"
@@ -169,14 +188,14 @@ export default function ProductForm({
 
         {showPreview && (
           <p className="rounded-lg bg-cream-100 px-3 py-2 text-sm text-gray-700">
-            Customers will see:{' '}
+            {t('Customers will see:')}{' '}
             <strong className="text-gray-900">{formatPrice(values.price)}</strong>{' '}
             {getUnitLabel(values.unit)}
             {discount > 0 && (
               <>
                 {' '}
                 <span className="text-gray-500 line-through">{formatPrice(values.mrp)}</span>{' '}
-                <span className="font-semibold text-brand-700">{discount}% off</span>
+                <span className="font-semibold text-brand-700">{t('{percent}% off', { percent: discount })}</span>
               </>
             )}
           </p>
@@ -188,23 +207,23 @@ export default function ProductForm({
           checked={values.isActive && !adminHidden}
           onChange={(isActive) => setValues((prev) => ({ ...prev, isActive }))}
           disabled={adminHidden}
-          label="Show this product to customers"
+          label={t('Show this product to customers')}
         />
         <p className="mt-2 text-xs text-gray-500">
           {adminHidden
-            ? 'An admin has hidden this product. Contact support to have it reviewed.'
-            : 'Turn off to hide it from the store without deleting it.'}
+            ? t('An admin has hidden this product. Contact support to have it reviewed.')
+            : t('Turn off to hide it from the store without deleting it.')}
         </p>
       </section>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {onCancel && (
           <Button variant="outline" onClick={onCancel} disabled={submitting}>
-            Cancel
+            {t('Cancel')}
           </Button>
         )}
         <Button type="submit" disabled={submitting || uploading}>
-          {submitting ? 'Saving…' : uploading ? 'Waiting for uploads…' : submitLabel}
+          {submitting ? t('Saving…') : uploading ? t('Waiting for uploads…') : submitLabel}
         </Button>
       </div>
     </form>

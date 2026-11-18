@@ -8,17 +8,18 @@ import EmptyState from '../../components/ui/EmptyState'
 import useAsync from '../../hooks/useAsync'
 import { PATHS } from '../../routes/paths'
 import { fetchStorefront } from '../../services/marketplaceService'
+import { msg, t, tp } from '../../i18n'
 
 const GRID = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
 
 const SORTS = {
   rating: {
-    label: 'Top rated',
+    label: msg('Top rated'),
     compare: (a, b) =>
       b.rating.average - a.rating.average || b.rating.count - a.rating.count || b.productCount - a.productCount,
   },
-  products: { label: 'Most products', compare: (a, b) => b.productCount - a.productCount },
-  name: { label: 'Name A–Z', compare: (a, b) => a.farmName.localeCompare(b.farmName) },
+  products: { label: msg('Most products'), compare: (a, b) => b.productCount - a.productCount },
+  name: { label: msg('Name A–Z'), compare: (a, b) => a.farmName.localeCompare(b.farmName) },
 }
 
 export default function FarmsPage() {
@@ -47,38 +48,37 @@ export default function FarmsPage() {
 
   return (
     <Container className="py-6">
-      <PageMeta title="Our farmers" description="Choose the farms you buy from — see each farm's location, ratings and products." />
-      <Breadcrumbs items={[{ label: 'Home', to: PATHS.HOME }, { label: 'Our farmers' }]} />
-      <h1 className="text-2xl font-bold text-gray-900">Our farmers</h1>
+      <PageMeta title={t('Our farmers')} description={t('Choose the farms you buy from — see each farm\'s location, ratings and products.')} />
+      <Breadcrumbs items={[{ label: t('Home'), to: PATHS.HOME }, { label: t('Our farmers') }]} />
+      <h1 className="text-2xl font-bold text-gray-900">{t('Our farmers')}</h1>
       <p className="mt-1 mb-5 text-sm text-gray-600">
-        You choose who you buy from. Every product comes straight from one of these farms, and
-        you can order from several farms in one go.
+        {t('You choose who you buy from. Every product comes straight from one of these farms, and you can order from several farms in one go.')}
       </p>
 
       {farms.length > 0 && (
         <div className="mb-5 flex flex-wrap items-center gap-3">
-          <label htmlFor="farm-search" className="sr-only">Search farms</label>
+          <label htmlFor="farm-search" className="sr-only">{t('Search farms')}</label>
           <input
             id="farm-search"
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search farm or place"
+            placeholder={t('Search farm or place')}
             className="h-10 w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none"
           />
-          <label htmlFor="farm-city" className="sr-only">Location</label>
+          <label htmlFor="farm-city" className="sr-only">{t('Location')}</label>
           <select
             id="farm-city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             className="h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm"
           >
-            <option value="">All locations</option>
+            <option value="">{t('All locations')}</option>
             {cities.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
-          <label htmlFor="farm-sort" className="sr-only">Sort by</label>
+          <label htmlFor="farm-sort" className="sr-only">{t('Sort by')}</label>
           <select
             id="farm-sort"
             value={sort}
@@ -86,11 +86,11 @@ export default function FarmsPage() {
             className="h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm"
           >
             {Object.entries(SORTS).map(([value, { label }]) => (
-              <option key={value} value={value}>Sort: {label}</option>
+              <option key={value} value={value}>{t('Sort: {option}', { option: t(label) })}</option>
             ))}
           </select>
           <p className="text-sm text-gray-600" aria-live="polite">
-            {shown.length} {shown.length === 1 ? 'farm' : 'farms'}
+            {tp(shown.length, '{count} farm', '{count} farms')}
           </p>
         </div>
       )}
@@ -105,13 +105,13 @@ export default function FarmsPage() {
         </ul>
       ) : farms.length === 0 ? (
         <EmptyState
-          title="No farmers are selling yet"
-          message="Farms appear here once they list their first product."
+          title={t('No farmers are selling yet')}
+          message={t('Farms appear here once they list their first product.')}
         />
       ) : shown.length === 0 ? (
         <EmptyState
-          title="No farms match"
-          message="Try a different search or location."
+          title={t('No farms match')}
+          message={t('Try a different search or location.')}
         />
       ) : (
         <ul className={GRID}>

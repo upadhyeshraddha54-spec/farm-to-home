@@ -17,6 +17,8 @@ import {
 } from '../../services/categoryService'
 import { CATEGORY_SLUG_PATTERN, DEFAULT_CATEGORIES } from '../../utils/constants'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
+import { CONTENT_LANGUAGES, translationsToForm } from '../../utils/translations'
+import { t, tp } from '../../i18n'
 
 function slugify(text) {
   return text
@@ -29,10 +31,10 @@ function slugify(text) {
 
 function validateCategory(values) {
   return {
-    label: values.label.trim().length < 2 || values.label.trim().length > 40 ? 'Name must be 2–40 characters.' : '',
-    slug: CATEGORY_SLUG_PATTERN.test(values.slug) ? '' : 'Use lowercase letters, numbers and single hyphens.',
-    emoji: [...values.emoji.trim()].length > 4 ? 'Use one emoji (or leave empty).' : '',
-    sortOrder: /^\d{1,4}$/.test(String(values.sortOrder)) && Number(values.sortOrder) <= 1000 ? '' : 'Enter 0–1000.',
+    label: values.label.trim().length < 2 || values.label.trim().length > 40 ? t('Name must be 2–40 characters.') : '',
+    slug: CATEGORY_SLUG_PATTERN.test(values.slug) ? '' : t('Use lowercase letters, numbers and single hyphens.'),
+    emoji: [...values.emoji.trim()].length > 4 ? t('Use one emoji (or leave empty).') : '',
+    sortOrder: /^\d{1,4}$/.test(String(values.sortOrder)) && Number(values.sortOrder) <= 1000 ? '' : t('Enter 0–1000.'),
   }
 }
 
@@ -44,13 +46,18 @@ function CategoryRow({ category, onDelete }) {
     emoji: category.emoji,
     sortOrder: String(category.sortOrder),
     isActive: category.isActive,
+    translations: translationsToForm(category, ['label']),
   })
   const [saving, setSaving] = useState(false)
   const changed =
     values.label !== category.label ||
     values.emoji !== category.emoji ||
     Number(values.sortOrder) !== category.sortOrder ||
-    values.isActive !== category.isActive
+    values.isActive !== category.isActive ||
+    CONTENT_LANGUAGES.some(
+      ({ code }) =>
+        values.translations[code].label.trim() !== (category.translations?.[code]?.label ?? ''),
+    )
 
   async function save(next = values) {
     const errors = validateCategory({ ...next, slug: category.value })
@@ -62,7 +69,7 @@ function CategoryRow({ category, onDelete }) {
     setSaving(true)
     try {
       await saveCategory(category.value, next, { isNew: false })
-      toast.success(`Saved “${next.label.trim()}”.`)
+      toast.success(t('Saved “{name}”.', { name: next.label.trim() }))
     } catch (error) {
       toast.error(getFriendlyErrorMessage(error))
     } finally {
@@ -72,13 +79,30 @@ function CategoryRow({ category, onDelete }) {
 
   return (
     <li className="grid items-end gap-3 p-4 sm:grid-cols-[4rem_1fr_6rem_auto_auto]">
-      <Input label="Emoji" value={values.emoji} maxLength={8} onChange={(e) => setValues((v) => ({ ...v, emoji: e.target.value }))} />
-      <Input label={`Name · ${category.value}`} value={values.label} maxLength={40} onChange={(e) => setValues((v) => ({ ...v, label: e.target.value }))} />
-      <Input label="Order" inputMode="numeric" value={values.sortOrder} onChange={(e) => setValues((v) => ({ ...v, sortOrder: e.target.value }))} />
+      <div className="grid gap-3 sm:col-span-5 sm:grid-cols-2 sm:order-last">
+        {CONTENT_LANGUAGES.map(({ code, label }) => (
+          <Input
+            key={code}
+            lang={code}
+            label={t('Name in {language} (optional)', { language: label })}
+            value={values.translations[code].label}
+            maxLength={40}
+            onChange={(e) =>
+              setValues((v) => ({
+                ...v,
+                translations: { ...v.translations, [code]: { label: e.target.value } },
+              }))
+            }
+          />
+        ))}
+      </div>
+      <Input label={t('Emoji')} value={values.emoji} maxLength={8} onChange={(e) => setValues((v) => ({ ...v, emoji: e.target.value }))} />
+      <Input label={t('Name · {id}', { id: category.value })} value={values.label} maxLength={40} onChange={(e) => setValues((v) => ({ ...v, label: e.target.value }))} />
+      <Input label={t('Order')} inputMode="numeric" value={values.sortOrder} onChange={(e) => setValues((v) => ({ ...v, sortOrder: e.target.value }))} />
       <div className="pb-2">
         <Switch
           checked={values.isActive}
-          label={values.isActive ? 'Shown' : 'Hidden'}
+          label={values.isActive ? t('Shown') : t('Hidden')}
           disabled={saving}
           onChange={(isActive) => {
             const next = { ...values, isActive }
@@ -89,10 +113,10 @@ function CategoryRow({ category, onDelete }) {
       </div>
       <div className="flex gap-2">
         <Button size="sm" onClick={() => save()} disabled={!changed || saving}>
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? t('Saving…') : t('Save')}
         </Button>
         <Button size="sm" variant="danger-ghost" onClick={() => onDelete(category)} disabled={saving}>
-          Delete
+          {t('Delete')}
         </Button>
       </div>
     </li>
@@ -114,7 +138,7 @@ export default function AdminCategoriesPage() {
   async function addDefaults() {
     try {
       const added = await addMissingDefaultCategories()
-      toast.success(`Added ${added} default categor${added === 1 ? 'y' : 'ies'}.`)
+      toast.success(tp(added, 'Added {count} default category.', 'Added {count} default categories.'))
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err))
     }
@@ -123,13 +147,13 @@ export default function AdminCategoriesPage() {
   async function handleAdd(event) {
     event.preventDefault()
     const next = validateCategory(form)
-    if (categories.some((c) => c.value === form.slug)) next.slug = 'A category with this ID already exists.'
+    if (categories.some((c) => c.value === form.slug)) next.slug = t('A category with this ID already exists.')
     setErrors(next)
     if (Object.values(next).some(Boolean)) return
     setAdding(true)
     try {
       await saveCategory(form.slug, { ...form, isActive: true }, { isNew: true })
-      toast.success(`Added “${form.label.trim()}”.`)
+      toast.success(t('Added “{name}”.', { name: form.label.trim() }))
       setForm({ label: '', slug: '', emoji: '', sortOrder: '100' })
       setSlugTouched(false)
     } catch (err) {
@@ -144,10 +168,14 @@ export default function AdminCategoriesPage() {
     try {
       const inUse = await countProductsInCategory(toDelete.value)
       if (inUse > 0) {
-        toast.error(`“${toDelete.label}” is used by ${inUse} product${inUse === 1 ? '' : 's'}. Hide it instead.`)
+        toast.error(
+          tp(inUse, '“{name}” is used by {count} product. Hide it instead.', '“{name}” is used by {count} products. Hide it instead.', {
+            name: toDelete.label,
+          }),
+        )
       } else {
         await deleteCategory(toDelete.value)
-        toast.success(`Deleted “${toDelete.label}”.`)
+        toast.success(t('Deleted “{name}”.', { name: toDelete.label }))
       }
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err))
@@ -159,23 +187,23 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <PageMeta title="Categories" noIndex />
+      <PageMeta title={t('Categories')} noIndex />
       <PageHeader
-        title="Categories"
-        subtitle="Hidden categories disappear from the store menus and can’t get new products."
+        title={t('Categories')}
+        subtitle={t('Hidden categories disappear from the store menus and can’t get new products.')}
       />
 
       {missingDefaults.length > 0 && (
-        <Alert variant={categories.length ? 'info' : 'warning'} title={categories.length ? 'Some default categories are missing' : 'No categories yet'}>
-          <p>Add the standard categories: {missingDefaults.map((d) => d.label).join(', ')}.</p>
-          <Button size="sm" className="mt-2" onClick={addDefaults}>Add default categories</Button>
+        <Alert variant={categories.length ? 'info' : 'warning'} title={categories.length ? t('Some default categories are missing') : t('No categories yet')}>
+          <p>{t('Add the standard categories: {list}.', { list: missingDefaults.map((d) => t(d.label)).join(', ') })}</p>
+          <Button size="sm" className="mt-2" onClick={addDefaults}>{t('Add default categories')}</Button>
         </Alert>
       )}
 
       <form onSubmit={handleAdd} noValidate className="grid gap-3 rounded-xl border border-cream-200 bg-white p-4 shadow-sm sm:grid-cols-[4rem_1fr_1fr_6rem_auto] sm:items-end">
-        <Input label="Emoji" value={form.emoji} maxLength={8} error={errors.emoji} onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))} />
+        <Input label={t('Emoji')} value={form.emoji} maxLength={8} error={errors.emoji} onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))} />
         <Input
-          label="New category name"
+          label={t('New category name')}
           value={form.label}
           maxLength={40}
           error={errors.label}
@@ -185,7 +213,7 @@ export default function AdminCategoriesPage() {
           }}
         />
         <Input
-          label="ID (used in links)"
+          label={t('ID (used in links)')}
           value={form.slug}
           maxLength={40}
           error={errors.slug}
@@ -194,8 +222,8 @@ export default function AdminCategoriesPage() {
             setForm((f) => ({ ...f, slug: e.target.value }))
           }}
         />
-        <Input label="Order" inputMode="numeric" value={form.sortOrder} error={errors.sortOrder} onChange={(e) => setForm((f) => ({ ...f, sortOrder: e.target.value }))} />
-        <Button type="submit" disabled={adding}>{adding ? 'Adding…' : 'Add'}</Button>
+        <Input label={t('Order')} inputMode="numeric" value={form.sortOrder} error={errors.sortOrder} onChange={(e) => setForm((f) => ({ ...f, sortOrder: e.target.value }))} />
+        <Button type="submit" disabled={adding}>{adding ? t('Adding…') : t('Add')}</Button>
       </form>
 
       {error ? (
@@ -205,16 +233,16 @@ export default function AdminCategoriesPage() {
       ) : (
         <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-cream-200 bg-white shadow-sm">
           {categories.map((category) => (
-            <CategoryRow key={`${category.value}-${category.label}-${category.isActive}-${category.sortOrder}`} category={category} onDelete={setToDelete} />
+            <CategoryRow key={`${category.value}-${category.updatedAt?.seconds ?? ''}-${category.isActive}`} category={category} onDelete={setToDelete} />
           ))}
         </ul>
       )}
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title={toDelete ? `Delete “${toDelete.label}”?` : ''}
-        message="Only categories with no products can be deleted. To keep a category but stop using it, switch it to Hidden."
-        confirmLabel="Delete"
+        title={toDelete ? t('Delete “{name}”?', { name: toDelete.label }) : ''}
+        message={t('Only categories with no products can be deleted. To keep a category but stop using it, switch it to Hidden.')}
+        confirmLabel={t('Delete')}
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}

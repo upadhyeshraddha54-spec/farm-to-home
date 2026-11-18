@@ -1,15 +1,16 @@
 import { ROLES } from '../../utils/constants'
+import { msg, t } from '../../i18n'
 
 const OPTIONS = [
   {
     value: ROLES.CUSTOMER,
-    title: 'I want to buy',
-    text: 'Shop fresh produce from local farmers.',
+    title: msg('I want to buy'),
+    text: msg('Shop fresh produce from local farmers.'),
   },
   {
     value: ROLES.FARMER,
-    title: 'I want to sell',
-    text: 'List your harvest and start selling today.',
+    title: msg('I want to sell'),
+    text: msg('List your harvest and start selling today.'),
   },
 ]
 
@@ -17,7 +18,7 @@ const OPTIONS = [
 export default function RoleSelector({ value, onChange, name = 'role' }) {
   return (
     <fieldset>
-      <legend className="mb-1.5 block text-sm font-medium text-gray-800">Account type</legend>
+      <legend className="mb-1.5 block text-sm font-medium text-gray-800">{t('Account type')}</legend>
       <div className="grid grid-cols-2 gap-3">
         {OPTIONS.map((option) => {
           const checked = value === option.value
@@ -38,8 +39,8 @@ export default function RoleSelector({ value, onChange, name = 'role' }) {
                 onChange={onChange}
                 className="sr-only"
               />
-              <span className="block text-sm font-semibold text-gray-900">{option.title}</span>
-              <span className="mt-1 block text-xs text-gray-600">{option.text}</span>
+              <span className="block text-sm font-semibold text-gray-900">{t(option.title)}</span>
+              <span className="mt-1 block text-xs text-gray-600">{t(option.text)}</span>
             </label>
           )
         })}

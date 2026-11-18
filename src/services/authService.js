@@ -10,6 +10,7 @@ import {
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { auth, db } from '../config/firebase'
 import { FARMER_STATUS, ROLES } from '../utils/constants'
+import { t } from '../i18n'
 
 const SIGNUP_ROLES = [ROLES.CUSTOMER, ROLES.FARMER]
 
@@ -26,7 +27,7 @@ function normalizePhone(phone) {
  */
 export async function signUp({ name, email, password, phone = '', role }) {
   if (!SIGNUP_ROLES.includes(role)) {
-    throw new Error('Invalid role selected.')
+    throw new Error(t('Invalid role selected.'))
   }
 
   const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password)

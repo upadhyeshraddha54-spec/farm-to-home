@@ -5,6 +5,7 @@ import { subscribeToMessages, subscribeToUsers } from '../services/adminService'
 import { subscribeToRecentOrders } from '../services/orderService'
 import { isFarmerSuspended, ROLES } from '../utils/constants'
 import DashboardLayout from './DashboardLayout'
+import { t } from '../i18n'
 
 const ADMIN_ORDER_WINDOW = 500 // most recent orders loaded for the dashboard
 
@@ -43,14 +44,14 @@ export default function AdminLayout() {
   const newMessages = context.messages.filter((m) => m.status === 'new').length
 
   const navItems = [
-    { label: 'Overview', to: PATHS.ADMIN, end: true },
-    { label: 'Farmers', to: PATHS.ADMIN_FARMERS, badge: suspendedFarmers },
-    { label: 'Orders', to: PATHS.ADMIN_ORDERS },
-    { label: 'Products', to: PATHS.ADMIN_PRODUCTS },
-    { label: 'Users', to: PATHS.ADMIN_USERS },
-    { label: 'Categories', to: PATHS.ADMIN_CATEGORIES },
-    { label: 'Messages', to: PATHS.ADMIN_MESSAGES, badge: newMessages },
+    { label: t('Overview'), to: PATHS.ADMIN, end: true },
+    { label: t('Farmers'), to: PATHS.ADMIN_FARMERS, badge: suspendedFarmers },
+    { label: t('Orders'), to: PATHS.ADMIN_ORDERS },
+    { label: t('Products'), to: PATHS.ADMIN_PRODUCTS },
+    { label: t('Users'), to: PATHS.ADMIN_USERS },
+    { label: t('Categories'), to: PATHS.ADMIN_CATEGORIES },
+    { label: t('Messages'), to: PATHS.ADMIN_MESSAGES, badge: newMessages },
   ]
 
-  return <DashboardLayout title="Admin" navItems={navItems} outletContext={context} />
+  return <DashboardLayout title={t('Admin')} navItems={navItems} outletContext={context} />
 }

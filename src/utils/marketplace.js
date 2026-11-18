@@ -1,21 +1,31 @@
+import { localized, msg } from '../i18n'
 import { CATEGORY_SLUG_PATTERN, getCategoryLabel } from './constants'
 import { getDiscountPercent } from './formatters'
 
+// Labels are translated where shown: t(option.label).
 export const SORT_OPTIONS = Object.freeze([
-  { value: 'relevance', label: 'Relevance' },
-  { value: 'newest', label: 'Newest first' },
-  { value: 'price-asc', label: 'Price: low to high' },
-  { value: 'price-desc', label: 'Price: high to low' },
-  { value: 'discount', label: 'Biggest discount' },
+  { value: 'relevance', label: msg('Relevance') },
+  { value: 'newest', label: msg('Newest first') },
+  { value: 'price-asc', label: msg('Price: low to high') },
+  { value: 'price-desc', label: msg('Price: high to low') },
+  { value: 'discount', label: msg('Biggest discount') },
 ])
 
 // Quick price ranges shown in the filter panel (prices are per unit).
+// Upper bounds end just below the next range (prices have at most 2
+// decimals), so a ₹50 item is in "₹50 – ₹100" only, not also in "Under ₹50".
 export const PRICE_RANGES = Object.freeze([
-  { label: 'Under ₹50', min: null, max: 50 },
-  { label: '₹50 – ₹100', min: 50, max: 100 },
-  { label: '₹100 – ₹250', min: 100, max: 250 },
-  { label: '₹250 and above', min: 250, max: null },
+  { label: msg('Under ₹50'), min: null, max: 49.99 },
+  { label: msg('₹50 – ₹100'), min: 50, max: 99.99 },
+  { label: msg('₹100 – ₹250'), min: 100, max: 249.99 },
+  { label: msg('₹250 and above'), min: 250, max: null },
 ])
+
+/** The quick range matching min/max exactly, if any. */
+export function findPriceRange(min, max) {
+  return PRICE_RANGES.find((r) => r.min === min && r.max === max) ?? null
+}
+
 
 const VALID_SORTS = new Set(SORT_OPTIONS.map((s) => s.value))
 
@@ -52,12 +62,15 @@ export function filtersToParams(filters) {
 }
 
 // Where a search word is found, and how much that counts.
+// Hindi/Marathi product names, category names and descriptions are
+// searched too, so "टमाटर" finds tomatoes whatever language is shown.
 const SEARCH_FIELDS = [
-  { weight: 5, get: (p) => p.name },
+  { weight: 5, get: (p) => [p.name, p.translations?.hi?.name, p.translations?.mr?.name].join(' ') },
+  { weight: 5, get: (p) => localized(p, 'name') },
   { weight: 3, get: (p) => getCategoryLabel(p.category) },
   { weight: 2, get: (p) => p.farmName },
   { weight: 2, get: (p) => p.farmLocation },
-  { weight: 1, get: (p) => p.description },
+  { weight: 1, get: (p) => [p.description, p.translations?.hi?.description, p.translations?.mr?.description].join(' ') },
 ]
 
 /**
@@ -77,9 +90,9 @@ function scoreProduct(product, matchers, phrase) {
     if (wordScore === 0) return 0
     score += wordScore
   }
-  const name = (product.name ?? '').toLowerCase()
-  if (name === phrase) score += 10
-  else if (name.startsWith(phrase)) score += 5
+  const names = [product.name, localized(product, 'name')].map((n) => (n ?? '').toLowerCase())
+  if (names.includes(phrase)) score += 10
+  else if (names.some((n) => n.startsWith(phrase))) score += 5
   return score
 }
 
@@ -98,7 +111,7 @@ const SORTERS = {
 export function filterProducts(products, filters) {
   const phrase = filters.q.toLowerCase()
   const words = phrase.split(/\s+/).filter(Boolean)
-  const matchers = words.map((word) => new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(word)}`, 'iu'))
+  const matchers = words.map((word) => new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}])${escapeRegExp(word)}`, 'iu'))
 
   let results = products
     .filter((p) => !filters.category || p.category === filters.category)

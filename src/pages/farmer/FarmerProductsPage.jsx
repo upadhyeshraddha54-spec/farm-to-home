@@ -16,6 +16,7 @@ import { deleteProduct, setProductListed } from '../../services/productService'
 import { getCategoryLabel, getUnitLabel } from '../../utils/constants'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { formatPrice } from '../../utils/formatters'
+import { t, tp, tx } from '../../i18n'
 
 export default function FarmerProductsPage() {
   const location = useLocation()
@@ -57,9 +58,9 @@ export default function FarmerProductsPage() {
   return (
     <div>
       <PageHeader
-        title="My products"
-        subtitle={`${products.length} ${products.length === 1 ? 'product' : 'products'}`}
-        actions={canSell ? <Button to={PATHS.FARMER_PRODUCT_NEW}>+ Add product</Button> : null}
+        title={t('My products')}
+        subtitle={tp(products.length, '{count} product', '{count} products')}
+        actions={canSell ? <Button to={PATHS.FARMER_PRODUCT_NEW}>{t('+ Add product')}</Button> : null}
       />
 
       <FarmerStatusNotice status={farmerStatus} className="mb-6" />
@@ -72,13 +73,13 @@ export default function FarmerProductsPage() {
         <Spinner fullPage />
       ) : products.length === 0 ? (
         <EmptyState
-          title="No products yet"
+          title={t('No products yet')}
           message={
             canSell
-              ? 'Add your first product so customers can start buying from your farm.'
-              : 'You can add products again once your account is reinstated.'
+              ? t('Add your first product so customers can start buying from your farm.')
+              : t('You can add products again once your account is reinstated.')
           }
-          action={canSell ? <Button to={PATHS.FARMER_PRODUCT_NEW}>+ Add product</Button> : null}
+          action={canSell ? <Button to={PATHS.FARMER_PRODUCT_NEW}>{t('+ Add product')}</Button> : null}
         />
       ) : (
         <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-cream-200 bg-white shadow-sm">
@@ -101,7 +102,7 @@ export default function FarmerProductsPage() {
                     <p className="text-xs text-gray-500">{getCategoryLabel(product.category)}</p>
                     {product.hiddenBy && (
                       <p className="mt-0.5 text-xs font-semibold text-red-600">
-                        {product.hiddenBy === 'admin' ? 'Hidden by admin' : 'Hidden while your account is suspended'}
+                        {product.hiddenBy === 'admin' ? t('Hidden by admin') : t('Hidden while your account is suspended')}
                       </p>
                     )}
                     <p className="mt-1 text-sm text-gray-800">
@@ -118,7 +119,7 @@ export default function FarmerProductsPage() {
                       checked={Boolean(product.isActive)}
                       onChange={(value) => handleToggle(product, value)}
                       disabled={!canSell || Boolean(product.hiddenBy) || togglingId === product.id}
-                      label={product.isActive ? 'Listed' : 'Hidden'}
+                      label={product.isActive ? t('Listed') : t('Hidden')}
                     />
                   </div>
                   <div className="flex items-center gap-1">
@@ -127,7 +128,7 @@ export default function FarmerProductsPage() {
                         to={productPath(product.id)}
                         className="rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
                       >
-                        View
+                        {t('View')}
                       </Link>
                     )}
                     {canSell && (
@@ -135,7 +136,7 @@ export default function FarmerProductsPage() {
                         to={farmerProductEditPath(product.id)}
                         className="rounded-md px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
                       >
-                        Edit
+                        {t('Edit')}
                       </Link>
                     )}
                     <button
@@ -143,7 +144,7 @@ export default function FarmerProductsPage() {
                       onClick={() => setToDelete(product)}
                       className="rounded-md px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
                     >
-                      Delete
+                      {t('Delete')}
                     </button>
                   </div>
                 </div>
@@ -155,14 +156,15 @@ export default function FarmerProductsPage() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title="Delete this product?"
+        title={t('Delete this product?')}
         message={
           <>
-            <strong>{toDelete?.name}</strong> will be permanently removed from your store.
-            This can’t be undone. To hide it temporarily, switch it to “Hidden” instead.
+            {tx('{product} will be permanently removed from your store. This can’t be undone. To hide it temporarily, switch it to “Hidden” instead.', {
+              product: <strong>{toDelete?.name}</strong>,
+            })}
           </>
         }
-        confirmLabel="Delete product"
+        confirmLabel={t('Delete product')}
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}

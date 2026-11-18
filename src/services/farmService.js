@@ -9,6 +9,7 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
+import { cleanTranslations } from '../utils/translations'
 
 /** "Nashik, Maharashtra" — stored on each product so listings can show it. */
 export function formatFarmLocation(farm) {
@@ -35,6 +36,7 @@ export async function saveFarm(farmerId, values, { isNew, syncProducts }) {
     city: values.city.trim(),
     state: values.state,
     description: values.description.trim(),
+    translations: cleanTranslations(values.translations, ['farmName', 'description']),
     updatedAt: serverTimestamp(),
   }
   if (isNew) farm.createdAt = serverTimestamp()

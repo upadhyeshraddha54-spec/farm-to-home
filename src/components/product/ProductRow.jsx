@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import ProductCard from './ProductCard'
+import { t } from '../../i18n'
 
 /**
  * Titled, horizontally scrolling row of products (like "Fresh arrivals").
@@ -14,7 +15,7 @@ export default function ProductRow({ title, products, seeAllTo }) {
         <h2 className="text-lg font-bold text-gray-900 sm:text-xl">{title}</h2>
         {seeAllTo && (
           <Link to={seeAllTo} className="shrink-0 text-sm font-semibold text-brand-700 hover:underline">
-            See all
+            {t('See all')}
           </Link>
         )}
       </div>

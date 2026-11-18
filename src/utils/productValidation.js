@@ -1,4 +1,6 @@
-import { PRODUCT_UNITS } from './constants'
+import { t } from '../i18n'
+import { PRODUCT_UNIT_VALUES } from './constants'
+import { translationsToForm, validateTranslations } from './translations'
 
 // These limits are also enforced in firestore.rules.
 export const PRODUCT_LIMITS = Object.freeze({
@@ -18,6 +20,7 @@ export const EMPTY_PRODUCT = {
   stock: '',
   images: [],
   isActive: true,
+  translations: translationsToForm(null, ['name', 'description']),
 }
 
 /** Converts a saved product into form values (numbers → text for inputs). */
@@ -32,6 +35,7 @@ export function productToFormValues(product) {
     stock: product.stock != null ? String(product.stock) : '',
     images: product.images ?? [],
     isActive: product.isActive ?? true,
+    translations: translationsToForm(product, ['name', 'description']),
   }
 }
 
@@ -48,48 +52,53 @@ export function validateProduct(values, categories) {
 
   return {
     name: !name
-      ? 'Please enter a product name.'
+      ? t('Please enter a product name.')
       : name.length < 2
-        ? 'Name must be at least 2 characters.'
+        ? t('Name must be at least 2 characters.')
         : name.length > PRODUCT_LIMITS.NAME_MAX
-          ? `Name must be ${PRODUCT_LIMITS.NAME_MAX} characters or fewer.`
+          ? t('Name must be {count} characters or fewer.', { count: PRODUCT_LIMITS.NAME_MAX })
           : '',
 
     description:
       values.description.trim().length > PRODUCT_LIMITS.DESCRIPTION_MAX
-        ? `Description must be ${PRODUCT_LIMITS.DESCRIPTION_MAX} characters or fewer.`
+        ? t('Description must be {count} characters or fewer.', { count: PRODUCT_LIMITS.DESCRIPTION_MAX })
         : '',
+
+    translations: validateTranslations(values.translations, {
+      name: PRODUCT_LIMITS.NAME_MAX,
+      description: PRODUCT_LIMITS.DESCRIPTION_MAX,
+    }),
 
     category: categories.some((c) => c.value === values.category)
       ? ''
-      : 'Please choose a category.',
+      : t('Please choose a category.'),
 
-    unit: PRODUCT_UNITS.some((u) => u.value === values.unit) ? '' : 'Please choose a unit.',
+    unit: PRODUCT_UNIT_VALUES.includes(values.unit) ? '' : t('Please choose a unit.'),
 
     price: !MONEY_PATTERN.test(String(values.price).trim())
-      ? 'Enter a price like 40 or 49.50.'
+      ? t('Enter a price like 40 or 49.50.')
       : price <= 0
-        ? 'Price must be more than ₹0.'
+        ? t('Price must be more than ₹0.')
         : price > PRODUCT_LIMITS.PRICE_MAX
-          ? `Price can’t be more than ₹${PRODUCT_LIMITS.PRICE_MAX.toLocaleString('en-IN')}.`
+          ? t('Price can’t be more than {amount}.', { amount: `₹${PRODUCT_LIMITS.PRICE_MAX.toLocaleString('en-IN')}` })
           : '',
 
     mrp: !hasMrp
       ? ''
       : !MONEY_PATTERN.test(String(values.mrp).trim())
-        ? 'Enter an MRP like 50 or 59.90.'
+        ? t('Enter an MRP like 50 or 59.90.')
         : mrp < price
-          ? 'MRP can’t be lower than your selling price.'
+          ? t('MRP can’t be lower than your selling price.')
           : mrp > PRODUCT_LIMITS.PRICE_MAX
-            ? `MRP can’t be more than ₹${PRODUCT_LIMITS.PRICE_MAX.toLocaleString('en-IN')}.`
+            ? t('MRP can’t be more than {amount}.', { amount: `₹${PRODUCT_LIMITS.PRICE_MAX.toLocaleString('en-IN')}` })
             : '',
 
     stock: !/^\d+$/.test(stockText)
-      ? 'Enter stock as a whole number (0 or more).'
+      ? t('Enter stock as a whole number (0 or more).')
       : stock > PRODUCT_LIMITS.STOCK_MAX
-        ? `Stock can’t be more than ${PRODUCT_LIMITS.STOCK_MAX.toLocaleString('en-IN')}.`
+        ? t('Stock can’t be more than {count}.', { count: PRODUCT_LIMITS.STOCK_MAX.toLocaleString('en-IN') })
         : '',
 
-    images: values.images.length === 0 ? 'Add at least one photo.' : '',
+    images: values.images.length === 0 ? t('Add at least one photo.') : '',
   }
 }

@@ -32,6 +32,7 @@ import { fileURLToPath } from 'node:url'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { fail, initAdmin } from '../lib/admin-sdk.mjs'
 import { DEMO_CATEGORIES, DEMO_FARMS, DEMO_NOTE } from './demo-data.mjs'
+import { FARM_TRANSLATIONS, PRODUCT_TRANSLATIONS, toTranslations } from './demo-translations.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const args = new Set(process.argv.slice(2))
@@ -141,6 +142,7 @@ async function seedDemoData() {
       city: farm.city,
       state: 'Maharashtra',
       description: `${farm.description}\n\n(${DEMO_NOTE})`,
+      ...(FARM_TRANSLATIONS[farm.id] && { translations: toTranslations(FARM_TRANSLATIONS[farm.id]) }),
       isDemo: true,
       createdAt: farmSnap?.exists ? farmSnap.get('createdAt') : FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -177,6 +179,9 @@ async function seedDemoData() {
         farmLocation,
         name: product.name,
         description: `${product.description}\n\n${DEMO_NOTE}`,
+        ...(PRODUCT_TRANSLATIONS[product.slug] && {
+          translations: toTranslations(PRODUCT_TRANSLATIONS[product.slug]),
+        }),
         category: product.category,
         price: product.price,
         mrp: product.mrp ?? null,

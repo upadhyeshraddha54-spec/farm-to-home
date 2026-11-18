@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { PATHS } from '../../routes/paths'
 import { APP_NAME } from '../../utils/constants'
+import { t } from '../../i18n'
 
 /** Brand mark + name. `light` is for dark (green) backgrounds. */
 export default function Logo({ light = false }) {
@@ -8,7 +9,7 @@ export default function Logo({ light = false }) {
     <Link
       to={PATHS.HOME}
       className="flex shrink-0 items-center gap-2"
-      aria-label={`${APP_NAME} home`}
+      aria-label={t('{app} home', { app: APP_NAME })}
     >
       <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden="true">
         <rect width="32" height="32" rx="8" fill={light ? '#faf6ec' : '#1f7a3f'} />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { getOptimizedImageUrl } from '../../services/cloudinaryService'
+import { t } from '../../i18n'
 
 const INTERVAL_MS = 6000
 
@@ -33,7 +34,7 @@ export default function BannerCarousel({ slides }) {
   return (
     <section
       aria-roledescription="carousel"
-      aria-label="Featured"
+      aria-label={t('Featured')}
       className="relative overflow-hidden rounded-2xl shadow-sm"
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
@@ -49,7 +50,7 @@ export default function BannerCarousel({ slides }) {
             key={slide.id}
             role="group"
             aria-roledescription="slide"
-            aria-label={`${i + 1} of ${count}`}
+            aria-label={t('{number} of {total}', { number: i + 1, total: count })}
             aria-hidden={i !== current}
             className={`relative flex min-h-56 w-full shrink-0 items-center sm:min-h-72 ${slide.tone}`}
           >
@@ -89,7 +90,7 @@ export default function BannerCarousel({ slides }) {
           <button
             type="button"
             onClick={() => go(current - 1)}
-            aria-label="Previous banner"
+            aria-label={t('Previous banner')}
             className="absolute top-1/2 left-2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-xl text-gray-800 shadow hover:bg-white sm:flex"
           >
             ‹
@@ -97,7 +98,7 @@ export default function BannerCarousel({ slides }) {
           <button
             type="button"
             onClick={() => go(current + 1)}
-            aria-label="Next banner"
+            aria-label={t('Next banner')}
             className="absolute top-1/2 right-2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-xl text-gray-800 shadow hover:bg-white sm:flex"
           >
             ›
@@ -108,7 +109,7 @@ export default function BannerCarousel({ slides }) {
                 key={slide.id}
                 type="button"
                 onClick={() => go(i)}
-                aria-label={`Show banner ${i + 1}`}
+                aria-label={t('Show banner {number}', { number: i + 1 })}
                 aria-current={i === current}
                 className={`h-2 rounded-full transition-all ${i === current ? 'w-6 bg-white' : 'w-2 bg-white/60 hover:bg-white/80'}`}
               />
@@ -116,7 +117,7 @@ export default function BannerCarousel({ slides }) {
             <button
               type="button"
               onClick={() => setPaused((p) => !p)}
-              aria-label={paused ? 'Play banners' : 'Pause banners'}
+              aria-label={paused ? t('Play banners') : t('Pause banners')}
               className="ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/30 text-[10px] text-white hover:bg-black/50"
             >
               {paused ? '▶' : '❚❚'}

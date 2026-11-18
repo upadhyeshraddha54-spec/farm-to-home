@@ -13,13 +13,14 @@ import { PATHS, productsPath } from '../../routes/paths'
 import { fetchStorefront } from '../../services/marketplaceService'
 import { ROLES } from '../../utils/constants'
 import { getDiscountPercent } from '../../utils/formatters'
+import { msg, t } from '../../i18n'
 
 const ROW_SIZE = 12
 
 const VALUE_POINTS = [
-  { title: 'Straight from the farm', text: 'Buy directly from the people who grow your food.' },
-  { title: 'Know your farmer', text: 'Every product shows the farm it comes from, with ratings from real buyers.' },
-  { title: 'Fair for farmers', text: 'Farmers set their own prices — no long chain of middlemen.' },
+  { title: msg('Straight from the farm'), text: msg('Buy directly from the people who grow your food.') },
+  { title: msg('Know your farmer'), text: msg('Every product shows the farm it comes from, with ratings from real buyers.') },
+  { title: msg('Fair for farmers'), text: msg('Farmers set their own prices — no long chain of middlemen.') },
 ]
 
 function firstImage(products, category) {
@@ -30,30 +31,30 @@ function buildSlides(products, role) {
   const slides = [
     {
       id: 'fruits',
-      eyebrow: 'Seasonal fruit',
-      title: 'Orchard-fresh fruit, picked for you',
-      text: 'Mangoes, oranges, grapes and more — straight from Maharashtra’s orchards.',
-      cta: 'Shop fruits',
+      eyebrow: t('Seasonal fruit'),
+      title: t('Orchard-fresh fruit, picked for you'),
+      text: t('Mangoes, oranges, grapes and more — straight from Maharashtra’s orchards.'),
+      cta: t('Shop fruits'),
       to: productsPath({ category: 'fruits' }),
       image: firstImage(products, 'fruits'),
       tone: 'bg-linear-to-r from-amber-600 to-orange-500',
     },
     {
       id: 'vegetables',
-      eyebrow: 'Daily essentials',
-      title: 'Farm-fresh vegetables',
-      text: 'Onions, tomatoes, greens and more from farms near you.',
-      cta: 'Shop vegetables',
+      eyebrow: t('Daily essentials'),
+      title: t('Farm-fresh vegetables'),
+      text: t('Onions, tomatoes, greens and more from farms near you.'),
+      cta: t('Shop vegetables'),
       to: productsPath({ category: 'vegetables' }),
       image: firstImage(products, 'vegetables'),
       tone: 'bg-linear-to-r from-brand-800 to-brand-600',
     },
     {
       id: 'grains',
-      eyebrow: 'Pantry staples',
-      title: 'Dal, grains & millets',
-      text: 'Unpolished pulses, local rice, jowar and bajra.',
-      cta: 'Shop grains & pulses',
+      eyebrow: t('Pantry staples'),
+      title: t('Dal, grains & millets'),
+      text: t('Unpolished pulses, local rice, jowar and bajra.'),
+      cta: t('Shop grains & pulses'),
       to: productsPath({ category: 'grains-pulses' }),
       image: firstImage(products, 'grains-pulses'),
       tone: 'bg-linear-to-r from-yellow-800 to-amber-700',
@@ -64,20 +65,20 @@ function buildSlides(products, role) {
   if (!role) {
     slides.push({
       id: 'sell',
-      eyebrow: 'For farmers',
-      title: 'Sell your harvest directly',
-      text: 'Create a free seller account and reach customers across Maharashtra today.',
-      cta: 'Start selling',
+      eyebrow: t('For farmers'),
+      title: t('Sell your harvest directly'),
+      text: t('Create a free seller account and reach customers across Maharashtra today.'),
+      cta: t('Start selling'),
       to: PATHS.SIGNUP,
       tone: 'bg-linear-to-r from-brand-900 to-brand-700',
     })
   } else if (role === ROLES.FARMER) {
     slides.push({
       id: 'sell',
-      eyebrow: 'For farmers',
-      title: 'Manage your farm store',
-      text: 'Add products, update stock and see your sales in your dashboard.',
-      cta: 'Go to dashboard',
+      eyebrow: t('For farmers'),
+      title: t('Manage your farm store'),
+      text: t('Add products, update stock and see your sales in your dashboard.'),
+      cta: t('Go to dashboard'),
       to: PATHS.FARMER,
       tone: 'bg-linear-to-r from-brand-900 to-brand-700',
     })
@@ -122,7 +123,7 @@ export default function HomePage() {
   return (
     <Container className="space-y-6 py-4 sm:py-6">
       {storefront.error ? (
-        <LoadError error={storefront.error} onRetry={storefront.reload} title="We couldn’t load the store" />
+        <LoadError error={storefront.error} onRetry={storefront.reload} title={t('We couldn’t load the store')} />
       ) : storefront.loading ? (
         <HomeSkeleton />
       ) : (
@@ -132,43 +133,43 @@ export default function HomePage() {
           <ul className="grid gap-3 sm:grid-cols-3">
             {VALUE_POINTS.map((point) => (
               <li key={point.title} className="rounded-xl border border-cream-200 bg-white px-4 py-3">
-                <p className="text-sm font-semibold text-brand-800">{point.title}</p>
-                <p className="text-xs text-gray-600">{point.text}</p>
+                <p className="text-sm font-semibold text-brand-800">{t(point.title)}</p>
+                <p className="text-xs text-gray-600">{t(point.text)}</p>
               </li>
             ))}
           </ul>
 
           {products.length === 0 ? (
             <EmptyState
-              title="The store is just getting started"
-              message="Farmers haven’t listed any products yet. Please check back soon."
+              title={t('The store is just getting started')}
+              message={t('Farmers haven’t listed any products yet. Please check back soon.')}
             />
           ) : (
             <>
               <CategoryTiles products={products} />
-              <ProductRow title="Fresh arrivals" products={sections.newest} seeAllTo={PATHS.PRODUCTS} />
+              <ProductRow title={t('Fresh arrivals')} products={sections.newest} seeAllTo={PATHS.PRODUCTS} />
               <ProductRow
-                title="Best deals"
+                title={t('Best deals')}
                 products={sections.deals}
                 seeAllTo={productsPath({ sort: 'discount' })}
               />
               <ProductRow
-                title="Fruits"
+                title={t('Fruits')}
                 products={sections.fruits}
                 seeAllTo={productsPath({ category: 'fruits' })}
               />
               <ProductRow
-                title="Vegetables"
+                title={t('Vegetables')}
                 products={sections.vegetables}
                 seeAllTo={productsPath({ category: 'vegetables' })}
               />
               <ProductRow
-                title="Grains & pulses"
+                title={t('Grains & pulses')}
                 products={sections.grains}
                 seeAllTo={productsPath({ category: 'grains-pulses' })}
               />
               <ProductRow
-                title="Dairy & eggs"
+                title={t('Dairy & eggs')}
                 products={sections.dairy}
                 seeAllTo={productsPath({ category: 'dairy-eggs' })}
               />
@@ -176,9 +177,9 @@ export default function HomePage() {
               {farms.length > 0 && (
                 <section className="rounded-2xl border border-cream-200 bg-white p-4 shadow-sm sm:p-5">
                   <div className="mb-4 flex items-center justify-between gap-4">
-                    <h2 className="text-lg font-bold text-gray-900 sm:text-xl">Meet our farmers</h2>
+                    <h2 className="text-lg font-bold text-gray-900 sm:text-xl">{t('Meet our farmers')}</h2>
                     <Link to={PATHS.FARMS} className="text-sm font-semibold text-brand-700 hover:underline">
-                      See all
+                      {t('See all')}
                     </Link>
                   </div>
                   <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,5 +1,6 @@
+import { t } from '../../i18n'
 /** − [ 3 ] + control. Calls onChange with a whole number between min and max. */
-export default function QuantityStepper({ value, min = 1, max, onChange, label = 'Quantity', disabled = false }) {
+export default function QuantityStepper({ value, min = 1, max, onChange, label = t('Quantity'), disabled = false }) {
   const clamp = (n) => Math.max(min, Math.min(max, n))
 
   return (
@@ -9,7 +10,7 @@ export default function QuantityStepper({ value, min = 1, max, onChange, label =
         onClick={() => onChange(clamp(value - 1))}
         disabled={disabled || value <= min}
         className="h-full w-10 rounded-l-lg text-lg font-semibold text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-        aria-label="Decrease quantity"
+        aria-label={t('Decrease quantity')}
       >
         −
       </button>
@@ -32,7 +33,7 @@ export default function QuantityStepper({ value, min = 1, max, onChange, label =
         onClick={() => onChange(clamp(value + 1))}
         disabled={disabled || value >= max}
         className="h-full w-10 rounded-r-lg text-lg font-semibold text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-        aria-label="Increase quantity"
+        aria-label={t('Increase quantity')}
       >
         +
       </button>

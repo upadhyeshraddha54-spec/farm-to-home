@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MAX_ITEM_QUANTITY, MAX_ORDER_ITEMS } from '../utils/constants'
 import { CartContext } from './cartContext'
+import { t } from '../i18n'
 
 const STORAGE_KEY = 'fth-cart-v1'
 
@@ -55,12 +56,12 @@ export default function CartProvider({ children }) {
       if (!existing && items.length >= MAX_ORDER_ITEMS) {
         return {
           ok: false,
-          reason: `An order can contain up to ${MAX_ORDER_ITEMS} different products. Check out or remove an item first.`,
+          reason: t('An order can contain up to {count} different products. Check out or remove an item first.', { count: MAX_ORDER_ITEMS }),
         }
       }
       const current = existing?.quantity ?? 0
       if (current >= limit) {
-        return { ok: false, reason: `You already have the maximum (${limit}) of this item in your cart.` }
+        return { ok: false, reason: t('You already have the maximum ({count}) of this item in your cart.', { count: limit }) }
       }
       const next = Math.min(current + quantity, limit)
       setItems((prev) =>

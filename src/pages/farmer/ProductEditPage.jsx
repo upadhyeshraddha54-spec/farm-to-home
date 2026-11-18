@@ -10,6 +10,7 @@ import { PATHS } from '../../routes/paths'
 import { updateProduct } from '../../services/productService'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { productToFormValues } from '../../utils/productValidation'
+import { t } from '../../i18n'
 
 export default function ProductEditPage() {
   const navigate = useNavigate()
@@ -27,9 +28,9 @@ export default function ProductEditPage() {
   if (!product || !farm) {
     return (
       <EmptyState
-        title="Product not found"
-        message="It may have been deleted."
-        action={<Button to={PATHS.FARMER_PRODUCTS}>Back to my products</Button>}
+        title={t('Product not found')}
+        message={t('It may have been deleted.')}
+        action={<Button to={PATHS.FARMER_PRODUCTS}>{t('Back to my products')}</Button>}
       />
     )
   }
@@ -37,18 +38,18 @@ export default function ProductEditPage() {
   async function handleSubmit(values) {
     await updateProduct(product.id, farm, values)
     navigate(PATHS.FARMER_PRODUCTS, {
-      state: { notice: `“${values.name.trim()}” was updated.` },
+      state: { notice: t('“{product}” was updated.', { product: values.name.trim() }) },
     })
   }
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Edit product" subtitle={product.name} />
+      <PageHeader title={t('Edit product')} subtitle={product.name} />
       {/* key: reset the form if a different product is opened */}
       <ProductForm
         key={product.id}
         initialValues={productToFormValues(product)}
-        submitLabel="Save changes"
+        submitLabel={t('Save changes')}
         adminHidden={Boolean(product.hiddenBy)}
         onSubmit={handleSubmit}
         onCancel={() => navigate(PATHS.FARMER_PRODUCTS)}

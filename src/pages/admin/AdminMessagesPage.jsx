@@ -12,6 +12,7 @@ import { adminOrderPath } from '../../routes/paths'
 import { setMessageStatus } from '../../services/adminService'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import { formatDateTime } from '../../utils/formatters'
+import { t } from '../../i18n'
 
 export default function AdminMessagesPage() {
   const toast = useToast()
@@ -33,14 +34,14 @@ export default function AdminMessagesPage() {
 
   return (
     <div className="max-w-4xl">
-      <PageMeta title="Messages" noIndex />
+      <PageMeta title={t('Messages')} noIndex />
       <PageHeader
-        title="Contact messages"
-        subtitle="Sent from the Contact page. Reply by email."
+        title={t('Contact messages')}
+        subtitle={t('Sent from the Contact page. Reply by email.')}
         actions={
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
-            Show resolved
+            {t('Show resolved')}
           </label>
         }
       />
@@ -49,7 +50,7 @@ export default function AdminMessagesPage() {
       ) : messagesLoading ? (
         <Spinner fullPage />
       ) : shown.length === 0 ? (
-        <EmptyState title="No messages" message={messages.length ? 'Everything is resolved.' : 'Messages from customers and farmers will appear here.'} />
+        <EmptyState title={t('No messages')} message={messages.length ? t('Everything is resolved.') : t('Messages from customers and farmers will appear here.')} />
       ) : (
         <ul className="space-y-3">
           {shown.map((m) => (
@@ -65,13 +66,13 @@ export default function AdminMessagesPage() {
                     · {formatDateTime(m.createdAt)}
                     {m.orderId && (
                       <>
-                        {' '}· <Link to={adminOrderPath(m.orderId)} className="text-brand-700 hover:underline">order</Link>
+                        {' '}· <Link to={adminOrderPath(m.orderId)} className="text-brand-700 hover:underline">{t('order')}</Link>
                       </>
                     )}
                   </p>
                 </div>
                 <Button size="sm" variant={m.status === 'resolved' ? 'outline' : 'primary'} onClick={() => toggle(m)} disabled={busyId === m.id}>
-                  {m.status === 'resolved' ? 'Reopen' : 'Mark resolved'}
+                  {m.status === 'resolved' ? t('Reopen') : t('Mark resolved')}
                 </Button>
               </div>
               <p className="mt-2 text-sm whitespace-pre-line text-gray-700">{m.message}</p>

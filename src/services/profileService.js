@@ -1,6 +1,7 @@
 import { updateProfile } from 'firebase/auth'
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { auth, db } from '../config/firebase'
+import { t } from '../i18n'
 
 /** Keeps just the last 10 digits of an Indian mobile number. */
 export function normalizePhone(phone = '') {
@@ -38,7 +39,7 @@ export function saveMyAddress(uid, address) {
 /** Contact form: stores a message for the admins to read. */
 export function sendContactMessage({ name, subject, message, orderId }) {
   const user = auth.currentUser
-  if (!user) throw new Error('Please sign in to send a message.')
+  if (!user) throw new Error(t('Please sign in to send a message.'))
   return addDoc(collection(db, 'messages'), {
     uid: user.uid,
     email: user.email,

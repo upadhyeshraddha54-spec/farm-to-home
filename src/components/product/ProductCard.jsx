@@ -5,6 +5,8 @@ import DemoBadge from './DemoBadge'
 import PriceTag from './PriceTag'
 import ProductImage from './ProductImage'
 import RatingStars from './RatingStars'
+import { localized, t } from '../../i18n'
+import { getFarmName } from '../../services/nameService'
 
 /** Product tile used in grids and rows. The whole card links to the product page. */
 export default function ProductCard({ product }) {
@@ -25,10 +27,10 @@ export default function ProductCard({ product }) {
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <h3 className="line-clamp-2 text-sm font-semibold text-gray-900 group-hover:text-brand-700">
-          {product.name}
+          {localized(product, 'name')}
         </h3>
         <p className="truncate text-xs text-gray-500">
-          {product.farmName}
+          {getFarmName(product.farmerId, product.farmName)}
           {product.farmLocation && ` · ${product.farmLocation.split(',')[0]}`}
         </p>
         {product.rating?.count > 0 && (
@@ -37,7 +39,7 @@ export default function ProductCard({ product }) {
         <div className="mt-auto pt-1">
           <PriceTag price={product.price} mrp={product.mrp} unit={product.unit} />
           {lowStock && (
-            <p className="mt-1 text-xs font-medium text-amber-700">Only {product.stock} left</p>
+            <p className="mt-1 text-xs font-medium text-amber-700">{t('Only {count} left', { count: product.stock })}</p>
           )}
         </div>
       </div>

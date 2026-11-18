@@ -12,19 +12,20 @@ import EmptyState from '../../components/ui/EmptyState'
 import useAsync from '../../hooks/useAsync'
 import { PATHS } from '../../routes/paths'
 import { fetchFarmPage } from '../../services/marketplaceService'
-import { getCategoryLabel } from '../../utils/constants'
+import { getCategoryLabel, getStateLabel } from '../../utils/constants'
 import { formatDate } from '../../utils/formatters'
 import { countByCategory } from '../../utils/marketplace'
+import { localized, t } from '../../i18n'
 
 /** Category tabs for a farm's products ("All", "Fruits 3", …). */
 function CategoryTabs({ counts, active, onSelect, total }) {
-  const tabs = [{ value: '', label: 'All', count: total }].concat(
+  const tabs = [{ value: '', label: t('All'), count: total }].concat(
     Object.entries(counts).map(([value, count]) => ({ value, label: getCategoryLabel(value), count })),
   )
   if (tabs.length <= 2) return null
 
   return (
-    <div className="mb-4 flex gap-2 relative overflow-x-auto pb-1" role="group" aria-label="Filter by category">
+    <div className="mb-4 flex gap-2 relative overflow-x-auto pb-1" role="group" aria-label={t('Filter by category')}>
       {tabs.map((tab) => (
         <button
           key={tab.value || 'all'}
@@ -52,8 +53,8 @@ function FarmProducts({ products }) {
   if (!products.length) {
     return (
       <EmptyState
-        title="Everything is sold out right now"
-        message="This farm’s products are out of stock at the moment. Please check back soon."
+        title={t('Everything is sold out right now')}
+        message={t('This farm’s products are out of stock at the moment. Please check back soon.')}
       />
     )
   }
@@ -82,24 +83,25 @@ export default function FarmPage() {
     return (
       <Container className="py-10">
         <EmptyState
-          title="Farm not found"
-          message="This farm doesn’t exist or isn’t selling on Farm To Home right now."
-          action={<Button to={PATHS.FARMS}>See all farmers</Button>}
+          title={t('Farm not found')}
+          message={t('This farm doesn’t exist or isn’t selling on Farm To Home right now.')}
+          action={<Button to={PATHS.FARMS}>{t('See all farmers')}</Button>}
         />
       </Container>
     )
   }
 
   const farm = page.data?.farm
-  const location = farm ? [farm.city, farm.state].filter(Boolean).join(', ') : ''
+  const location = farm ? [farm.city, getStateLabel(farm.state)].filter(Boolean).join(', ') : ''
+  const farmName = localized(farm, 'farmName')
 
   return (
     <Container className="py-6">
       <Breadcrumbs
         items={[
-          { label: 'Home', to: PATHS.HOME },
-          { label: 'Our farmers', to: PATHS.FARMS },
-          { label: farm?.farmName ?? 'Farm' },
+          { label: t('Home'), to: PATHS.HOME },
+          { label: t('Our farmers'), to: PATHS.FARMS },
+          { label: farmName || t('Farm') },
         ]}
       />
 
@@ -115,31 +117,31 @@ export default function FarmPage() {
             <div className="px-5 pb-5 sm:px-6">
               {/* Only the avatar overlaps the green banner; the text sits below it. */}
               <div className="-mt-8 w-fit rounded-full ring-4 ring-white sm:-mt-10">
-                <FarmAvatar name={farm.farmName} size="lg" />
+                <FarmAvatar name={farmName} size="lg" />
               </div>
               <div className="mt-3">
                 <div className="min-w-0">
                   <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold text-gray-900">
-                    {farm.farmName}
+                    {farmName}
                     {farm.isDemo && <DemoBadge />}
                   </h1>
                   <p className="text-sm text-gray-600">
                     {location}
-                    {farm.createdAt && ` · Selling since ${formatDate(farm.createdAt)}`}
+                    {farm.createdAt && ` · ${t('Selling since {date}', { date: formatDate(farm.createdAt) })}`}
                   </p>
                   <RatingStars value={farm.rating?.average ?? 0} count={farm.rating?.count ?? 0} showEmpty className="mt-1" />
                 </div>
               </div>
               {farm.description && (
                 <p className="mt-4 max-w-3xl text-sm leading-relaxed whitespace-pre-line text-gray-700">
-                  {farm.description}
+                  {localized(farm, 'description')}
                 </p>
               )}
             </div>
           </section>
 
           <h2 className="mb-3 text-lg font-bold text-gray-900">
-            Products from {farm.farmName}{' '}
+            {t('Products from {farm}', { farm: farmName })}{' '}
             <span className="font-normal text-gray-500">({page.data.products.length})</span>
           </h2>
           <FarmProducts key={farmId} products={page.data.products} />

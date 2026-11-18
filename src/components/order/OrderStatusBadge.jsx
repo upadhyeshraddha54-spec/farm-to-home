@@ -1,4 +1,4 @@
-import { ORDER_STATUS_LABELS } from '../../utils/constants'
+import { getOrderStatusLabel } from '../../utils/constants'
 
 const STYLES = {
   placed: 'bg-sky-100 text-sky-800',
@@ -12,7 +12,7 @@ const STYLES = {
 export default function OrderStatusBadge({ status }) {
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${STYLES[status] ?? STYLES.placed}`}>
-      {ORDER_STATUS_LABELS[status] ?? status}
+      {getOrderStatusLabel(status)}
     </span>
   )
 }

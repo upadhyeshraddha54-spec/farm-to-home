@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getOptimizedImageUrl } from '../../services/cloudinaryService'
 import { getCategoryStyle } from '../../utils/categoryIcons'
+import { localized } from '../../i18n'
 
 /**
  * Square product photo with a graceful fallback (category emoji) if the
@@ -16,7 +17,7 @@ export default function ProductImage({ product, size = 400, className = '', eage
       <div
         className={`flex aspect-square items-center justify-center ${style.bg} ${className}`}
         role="img"
-        aria-label={product.name}
+        aria-label={localized(product, 'name')}
       >
         <span className="text-5xl" aria-hidden="true">
           {style.emoji}
@@ -28,7 +29,7 @@ export default function ProductImage({ product, size = 400, className = '', eage
   return (
     <img
       src={getOptimizedImageUrl(url, { width: size, height: size })}
-      alt={product.name}
+      alt={localized(product, 'name')}
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"
       onError={() => setFailed(true)}

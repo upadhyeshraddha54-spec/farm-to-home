@@ -15,10 +15,13 @@ import useCartDetails from '../../hooks/useCartDetails'
 import { PATHS, productPath } from '../../routes/paths'
 import { MAX_ITEM_QUANTITY, MAX_ORDER_ITEMS, ROLES } from '../../utils/constants'
 import { formatPaise, toPaise } from '../../utils/orders'
+import { localized, msg, t } from '../../i18n'
+import useLocalizedNames from '../../hooks/useLocalizedNames'
+import { getFarmName } from '../../services/nameService'
 
 const PROBLEM_TEXT = {
-  unavailable: 'No longer available — please remove it.',
-  'out-of-stock': 'Out of stock — please remove it.',
+  unavailable: msg('No longer available — please remove it.'),
+  'out-of-stock': msg('Out of stock — please remove it.'),
 }
 
 function CartLine({ line }) {
@@ -38,28 +41,28 @@ function CartLine({ line }) {
         {product ? (
           <>
             <Link to={productPath(product.id)} className="font-semibold text-gray-900 hover:text-brand-700">
-              {product.name}
+              {localized(product, 'name')}
             </Link>
             <div className="mt-1">
               <PriceTag price={product.price} mrp={product.mrp} unit={product.unit} />
             </div>
           </>
         ) : (
-          <p className="font-semibold text-gray-500">Unavailable product</p>
+          <p className="font-semibold text-gray-500">{t('Unavailable product')}</p>
         )}
 
         {problem && problem !== 'too-many' && (
-          <p className="mt-2 text-sm font-medium text-red-600">{PROBLEM_TEXT[problem]}</p>
+          <p className="mt-2 text-sm font-medium text-red-600">{t(PROBLEM_TEXT[problem])}</p>
         )}
         {problem === 'too-many' && (
           <p className="mt-2 text-sm font-medium text-amber-700">
-            Only {product.stock} left.{' '}
+            {t('Only {count} left.', { count: product.stock })}{' '}
             <button
               type="button"
               onClick={() => setQuantity(product.id, product.stock)}
               className="font-semibold text-brand-700 underline"
             >
-              Change to {product.stock}
+              {t('Change to {count}', { count: product.stock })}
             </button>
           </p>
         )}
@@ -70,7 +73,7 @@ function CartLine({ line }) {
               value={quantity}
               max={Math.max(1, Math.min(product.stock, MAX_ITEM_QUANTITY))}
               onChange={(q) => setQuantity(line.productId, q)}
-              label={`Quantity of ${product.name}`}
+              label={t('Quantity of {product}', { product: localized(product, 'name') })}
             />
           )}
           <button
@@ -78,7 +81,7 @@ function CartLine({ line }) {
             onClick={() => removeItem(line.productId)}
             className="text-sm font-medium text-red-600 hover:underline"
           >
-            Remove
+            {t('Remove')}
           </button>
         </div>
       </div>
@@ -95,6 +98,7 @@ export default function CartPage() {
   const { role } = useAuth()
   const { items } = useCart()
   const { lines, totals, units, hasProblems, loading, error, reload } = useCartDetails()
+  useLocalizedNames()
 
   // Group lines by farm, like separate shipments.
   const groups = []
@@ -102,7 +106,7 @@ export default function CartPage() {
     const key = line.product?.farmerId ?? 'unavailable'
     let group = groups.find((g) => g.key === key)
     if (!group) {
-      group = { key, farmName: line.product?.farmName ?? 'Unavailable items', lines: [] }
+      group = { key, farmName: line.product?.farmName ?? t('Unavailable items'), lines: [] }
       groups.push(group)
     }
     group.lines.push(line)
@@ -112,17 +116,17 @@ export default function CartPage() {
 
   return (
     <Container className="py-6">
-      <PageMeta title="Your cart" noIndex />
-      <h1 className="mb-4 text-2xl font-bold text-gray-900">Your cart</h1>
+      <PageMeta title={t('Your cart')} noIndex />
+      <h1 className="mb-4 text-2xl font-bold text-gray-900">{t('Your cart')}</h1>
 
       {items.length === 0 ? (
         <EmptyState
-          title="Your cart is empty"
-          message="Browse fresh produce from local farms and add something you like."
-          action={<Button to={PATHS.PRODUCTS}>Start shopping</Button>}
+          title={t('Your cart is empty')}
+          message={t('Browse fresh produce from local farms and add something you like.')}
+          action={<Button to={PATHS.PRODUCTS}>{t('Start shopping')}</Button>}
         />
       ) : error ? (
-        <LoadError error={error} onRetry={reload} title="We couldn’t load your cart" />
+        <LoadError error={error} onRetry={reload} title={t('We couldn’t load your cart')} />
       ) : loading ? (
         <Spinner fullPage />
       ) : (
@@ -131,7 +135,7 @@ export default function CartPage() {
             {groups.map((group) => (
               <section key={group.key} className="overflow-hidden rounded-xl border border-cream-200 bg-white shadow-sm">
                 <h2 className="border-b border-gray-100 bg-cream-50 px-4 py-2 text-sm font-semibold text-gray-700">
-                  {group.key === 'unavailable' ? group.farmName : `Shipped by ${group.farmName}`}
+                  {group.key === 'unavailable' ? group.farmName : t('Shipped by {farm}', { farm: getFarmName(group.key, group.farmName) })}
                 </h2>
                 <ul className="divide-y divide-gray-100">
                   {group.lines.map((line) => (
@@ -141,8 +145,7 @@ export default function CartPage() {
               </section>
             ))}
             <p className="text-xs text-gray-500">
-              One order can contain up to {MAX_ORDER_ITEMS} different products and up to{' '}
-              {MAX_ITEM_QUANTITY} of each. Prices and stock are checked again when you place the order.
+              {t('One order can contain up to {items} different products and up to {quantity} of each. Prices and stock are checked again when you place the order.', { items: MAX_ORDER_ITEMS, quantity: MAX_ITEM_QUANTITY })}
             </p>
           </div>
 
@@ -150,17 +153,17 @@ export default function CartPage() {
             <OrderSummary totals={totals} units={units}>
               {blockedRole ? (
                 <p className="text-sm text-gray-600">
-                  Seller and admin accounts can’t place orders. Sign in with a customer account to buy.
+                  {t('Seller and admin accounts can’t place orders. Sign in with a customer account to buy.')}
                 </p>
               ) : (
                 <>
                   <Button to={hasProblems ? undefined : PATHS.CHECKOUT} disabled={hasProblems} className="w-full" size="lg">
-                    Proceed to checkout
+                    {t('Proceed to checkout')}
                   </Button>
                   {hasProblems && (
-                    <p className="mt-2 text-xs text-red-600">Fix the highlighted items to continue.</p>
+                    <p className="mt-2 text-xs text-red-600">{t('Fix the highlighted items to continue.')}</p>
                   )}
-                  <p className="mt-3 text-center text-xs text-gray-500">Pay with Cash on Delivery</p>
+                  <p className="mt-3 text-center text-xs text-gray-500">{t('Pay with Cash on Delivery')}</p>
                 </>
               )}
             </OrderSummary>

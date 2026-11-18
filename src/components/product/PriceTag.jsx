@@ -1,5 +1,6 @@
 import { getUnitLabel } from '../../utils/constants'
 import { formatPrice, getDiscountPercent } from '../../utils/formatters'
+import { t } from '../../i18n'
 
 /** "₹40 per kg  ₹50  20% off" — size "lg" for product pages. */
 export default function PriceTag({ price, mrp, unit, size = 'md' }) {
@@ -15,11 +16,11 @@ export default function PriceTag({ price, mrp, unit, size = 'md' }) {
       {discount > 0 && (
         <>
           <span className={`text-gray-400 line-through ${large ? 'text-base' : 'text-xs'}`}>
-            <span className="sr-only">MRP </span>
+            <span className="sr-only">{t('MRP')}{' '}</span>
             {formatPrice(mrp)}
           </span>
           <span className={`font-semibold text-brand-700 ${large ? 'text-base' : 'text-xs'}`}>
-            {discount}% off
+            {t('{percent}% off', { percent: discount })}
           </span>
         </>
       )}

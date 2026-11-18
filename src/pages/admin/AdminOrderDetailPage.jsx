@@ -13,6 +13,7 @@ import { PATHS } from '../../routes/paths'
 import { subscribeToOrder } from '../../services/orderService'
 import { formatDateTime } from '../../utils/formatters'
 import { getOverallStatus, shortOrderId } from '../../utils/orders'
+import { t, tx } from '../../i18n'
 
 export default function AdminOrderDetailPage() {
   const { orderId } = useParams()
@@ -23,8 +24,8 @@ export default function AdminOrderDetailPage() {
   if (!order.data) {
     return (
       <EmptyState
-        title="Order not found"
-        action={<Button to={PATHS.ADMIN_ORDERS}>All orders</Button>}
+        title={t('Order not found')}
+        action={<Button to={PATHS.ADMIN_ORDERS}>{t('All orders')}</Button>}
       />
     )
   }
@@ -34,20 +35,24 @@ export default function AdminOrderDetailPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageMeta title={`Order #${number}`} noIndex />
-      <Breadcrumbs items={[{ label: 'Orders', to: PATHS.ADMIN_ORDERS }, { label: `Order #${number}` }]} />
+      <PageMeta title={t('Order #{id}', { id: number })} noIndex />
+      <Breadcrumbs items={[{ label: t('Orders'), to: PATHS.ADMIN_ORDERS }, { label: t('Order #{id}', { id: number }) }]} />
       <div className="mb-5">
         <h1 className="flex flex-wrap items-center gap-3 text-2xl font-bold text-gray-900">
-          Order #{number} <OrderStatusBadge status={getOverallStatus(data)} />
+          {t('Order #{id}', { id: number })} <OrderStatusBadge status={getOverallStatus(data)} />
         </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Placed {formatDateTime(data.createdAt)} by{' '}
-          <a href={`mailto:${data.customerEmail}`} className="font-medium text-brand-700 hover:underline">
-            {data.customerEmail}
-          </a>
+          {tx('Placed {date} by {customer}', {
+            date: formatDateTime(data.createdAt),
+            customer: (
+              <a href={`mailto:${data.customerEmail}`} className="font-medium text-brand-700 hover:underline">
+                {data.customerEmail}
+              </a>
+            ),
+          })}
         </p>
         <p className="mt-1 text-xs text-gray-500">
-          Admins can move any shipment forward — useful for demo farms (which have no login) or support cases.
+          {t('Admins can move any shipment forward — useful for demo farms (which have no login) or support cases.')}
         </p>
       </div>
 

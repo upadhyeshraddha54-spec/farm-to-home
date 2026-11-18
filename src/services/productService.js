@@ -12,6 +12,9 @@ import {
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { formatFarmLocation } from './farmService'
+import { cleanTranslations } from '../utils/translations'
+
+const PRODUCT_TEXT_FIELDS = ['name', 'description']
 
 // A function (not a constant) so nothing touches Firebase until it's used.
 const productsRef = () => collection(db, 'products')
@@ -31,6 +34,7 @@ function toProductData(values, farm) {
   return {
     name: values.name.trim(),
     description: values.description.trim(),
+    translations: cleanTranslations(values.translations, PRODUCT_TEXT_FIELDS),
     category: values.category,
     price: Number(values.price),
     mrp: values.mrp === '' || values.mrp == null ? null : Number(values.mrp),

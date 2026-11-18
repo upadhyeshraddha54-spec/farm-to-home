@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { msg, t, tp } from '../../i18n'
 
 function Star({ fill, className }) {
   // fill: 0–1 (how much of the star is filled)
@@ -30,7 +31,9 @@ const SIZES = { sm: 'h-3.5 w-3.5', md: 'h-4 w-4', lg: 'h-6 w-6' }
  */
 export default function RatingStars({ value = 0, count, size = 'md', showEmpty = false, className = '' }) {
   if (!count && !showEmpty) return null
-  const label = count ? `${value} out of 5 stars from ${count} ${count === 1 ? 'review' : 'reviews'}` : 'No reviews yet'
+  const label = count
+    ? tp(count, '{rating} out of 5 stars from {count} review', '{rating} out of 5 stars from {count} reviews', { rating: value })
+    : t('No reviews yet')
   return (
     <span className={`inline-flex items-center gap-1 ${className}`} role="img" aria-label={label}>
       <span className="flex text-accent-500">
@@ -43,13 +46,13 @@ export default function RatingStars({ value = 0, count, size = 'md', showEmpty =
           <span className="font-semibold text-gray-800">{value}</span> ({count})
         </span>
       ) : (
-        <span className="text-xs text-gray-500">No reviews yet</span>
+        <span className="text-xs text-gray-500">{t('No reviews yet')}</span>
       )}
     </span>
   )
 }
 
-const WORDS = { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Very good', 5: 'Excellent' }
+const WORDS = { 1: msg('Poor'), 2: msg('Fair'), 3: msg('Good'), 4: msg('Very good'), 5: msg('Excellent') }
 
 /** Star picker for the review form (radio buttons, keyboard accessible). */
 export function RatingInput({ value, onChange, name = 'rating', error }) {
@@ -57,7 +60,7 @@ export function RatingInput({ value, onChange, name = 'rating', error }) {
   const shown = hover || value
   return (
     <fieldset>
-      <legend className="mb-1.5 block text-sm font-medium text-gray-800">Your rating</legend>
+      <legend className="mb-1.5 block text-sm font-medium text-gray-800">{t('Your rating')}</legend>
       <div className="flex items-center gap-2">
         <div className="flex" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((star) => (
@@ -69,7 +72,7 @@ export function RatingInput({ value, onChange, name = 'rating', error }) {
                 checked={value === star}
                 onChange={() => onChange(star)}
                 className="sr-only"
-                aria-label={`${star} ${star === 1 ? 'star' : 'stars'} — ${WORDS[star]}`}
+                aria-label={`${tp(star, '{count} star', '{count} stars')} — ${t(WORDS[star])}`}
               />
               <Star
                 fill={star <= shown ? 1 : 0}
@@ -78,7 +81,7 @@ export function RatingInput({ value, onChange, name = 'rating', error }) {
             </label>
           ))}
         </div>
-        <span className="text-sm text-gray-600">{shown ? WORDS[shown] : 'Tap a star'}</span>
+        <span className="text-sm text-gray-600">{shown ? t(WORDS[shown]) : t('Tap a star')}</span>
       </div>
       {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
     </fieldset>

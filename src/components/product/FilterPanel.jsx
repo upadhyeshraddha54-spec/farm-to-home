@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { PRICE_RANGES } from '../../utils/marketplace'
 import Button from '../ui/Button'
+import { t } from '../../i18n'
 
 function FilterSection({ title, children }) {
   return (
@@ -41,12 +42,12 @@ function PriceInputs({ min, max, onApply }) {
         (v) => v != null && (!Number.isFinite(v) || v < 0)
       )
     ) {
-      setError('Enter prices as positive numbers.')
+      setError(t('Enter prices as positive numbers.'))
       return
     }
 
     if (nextMin != null && nextMax != null && nextMin > nextMax) {
-      setError('Minimum can’t be more than maximum.')
+      setError(t('Minimum can’t be more than maximum.'))
       return
     }
 
@@ -58,13 +59,13 @@ function PriceInputs({ min, max, onApply }) {
     <form onSubmit={handleSubmit} className="mt-3" noValidate>
       <div className="flex items-center gap-2">
         <label className="sr-only" htmlFor="price-min">
-          Minimum price
+          {t('Minimum price')}
         </label>
 
         <input
           id="price-min"
           inputMode="decimal"
-          placeholder="₹ Min"
+          placeholder={t('₹ Min')}
           value={values.min}
           onChange={(e) =>
             setValues((v) => ({ ...v, min: e.target.value }))
@@ -77,13 +78,13 @@ function PriceInputs({ min, max, onApply }) {
         </span>
 
         <label className="sr-only" htmlFor="price-max">
-          Maximum price
+          {t('Maximum price')}
         </label>
 
         <input
           id="price-max"
           inputMode="decimal"
-          placeholder="₹ Max"
+          placeholder={t('₹ Max')}
           value={values.max}
           onChange={(e) =>
             setValues((v) => ({ ...v, max: e.target.value }))
@@ -97,7 +98,7 @@ function PriceInputs({ min, max, onApply }) {
           variant="outline"
           className="shrink-0"
         >
-          Go
+          {t('Go')}
         </Button>
       </div>
 
@@ -110,6 +111,7 @@ function PriceInputs({ min, max, onApply }) {
 
 /**
  * Category and price filters for the product listing.
+ * categories: [{ value, label }] with labels already in the current language.
  * onChange(changes) receives only the filters that changed.
  */
 export default function FilterPanel({
@@ -122,7 +124,7 @@ export default function FilterPanel({
     <div className="rounded-xl border border-cream-200 bg-white p-4 shadow-sm">
 
       {/* CATEGORY FILTER */}
-      <FilterSection title="Category">
+      <FilterSection title={t('Category')}>
         <ul className="category-scrollbar max-h-56 space-y-0.5 overflow-y-auto overscroll-contain pr-2">
           <li>
             <button
@@ -131,7 +133,7 @@ export default function FilterPanel({
               aria-pressed={!filters.category}
               onClick={() => onChange({ category: '' })}
             >
-              All categories
+              {t('All categories')}
             </button>
           </li>
 
@@ -145,18 +147,13 @@ export default function FilterPanel({
                   type="button"
                   className={optionClass(active)}
                   aria-pressed={active}
-                  disabled={count === 0 && !active}
                   onClick={() =>
                     onChange({
                       category: active ? '' : category.value,
                     })
                   }
                 >
-                  <span
-                    className={
-                      count === 0 && !active ? 'text-gray-400' : ''
-                    }
-                  >
+                  <span className={count === 0 && !active ? 'text-gray-500' : ''}>
                     {category.label}
                   </span>
 
@@ -171,7 +168,7 @@ export default function FilterPanel({
       </FilterSection>
 
       {/* PRICE FILTER */}
-      <FilterSection title="Price">
+      <FilterSection title={t('Price')}>
         <ul className="space-y-0.5">
           {PRICE_RANGES.map((range) => {
             const active =
@@ -192,7 +189,7 @@ export default function FilterPanel({
                     )
                   }
                 >
-                  {range.label}
+                  {t(range.label)}
                 </button>
               </li>
             )

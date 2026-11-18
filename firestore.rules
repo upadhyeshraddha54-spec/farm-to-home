@@ -75,6 +75,23 @@ service cloud.firestore {
       return value is string && value.size() >= min && value.size() <= max;
     }
 
+    // Optional Hindi/Marathi versions of text a person typed (product names,
+    // farm descriptions, category names…). Shape:
+    //   translations: { hi: { <fieldA>: string, <fieldB>: string }, mr: { … } }
+    // Every language and field is optional; an empty string means "not translated".
+    function isValidTranslation(m, fieldA, maxA, fieldB, maxB) {
+      return m is map && m.keys().hasOnly([fieldA, fieldB])
+        && isText(m.get(fieldA, ''), 0, maxA)
+        && isText(m.get(fieldB, ''), 0, maxB);
+    }
+
+    function isValidTranslations(d, fieldA, maxA, fieldB, maxB) {
+      return !('translations' in d)
+        || (d.translations is map && d.translations.keys().hasOnly(['hi', 'mr'])
+            && isValidTranslation(d.translations.get('hi', {}), fieldA, maxA, fieldB, maxB)
+            && isValidTranslation(d.translations.get('mr', {}), fieldA, maxA, fieldB, maxB));
+    }
+
     // Exactly these 8 fields (line2 and landmark may be empty strings).
     function isValidAddress(a) {
       return a.keys().size() == 8
@@ -171,8 +188,10 @@ service cloud.firestore {
     function isValidCategory(slug) {
       let d = request.resource.data;
       return slug.matches('^[a-z0-9]+(-[a-z0-9]+)*$') && slug.size() <= 40
-        && d.keys().hasOnly(['label', 'emoji', 'isActive', 'sortOrder', 'createdAt', 'updatedAt'])
+        && d.keys().hasOnly(['label', 'emoji', 'isActive', 'sortOrder', 'createdAt', 'updatedAt',
+                             'translations'])
         && isText(d.label, 2, 40)
+        && isValidTranslations(d, 'label', 40, 'label', 40)
         && isText(d.emoji, 0, 8)
         && d.isActive is bool
         && d.sortOrder is int && d.sortOrder >= 0 && d.sortOrder <= 1000
@@ -191,6 +210,7 @@ service cloud.firestore {
         && (isAdmin()
           || (isSignedIn() && defaultsNotSeededYet()
               && request.resource.data.isActive == true
+              && !('translations' in request.resource.data)
               && isDefaultCategory(slug, request.resource.data)));
       allow update: if isAdmin() && isValidCategory(slug)
         && request.resource.data.createdAt == resource.data.createdAt;
@@ -228,8 +248,10 @@ service cloud.firestore {
 
     function isValidFarm() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['farmName', 'city', 'state', 'description', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['farmName', 'city', 'state', 'description', 'createdAt', 'updatedAt',
+                               'translations'])
         && isText(d.farmName, 2, 80)
+        && isValidTranslations(d, 'farmName', 80, 'description', 1000)
         && isText(d.city, 2, 60)
         && isText(d.state, 2, 60)
         && isText(d.description, 0, 1000)
@@ -254,12 +276,13 @@ service cloud.firestore {
       return d.keys().hasOnly(['farmerId', 'farmName', 'farmLocation', 'name', 'description',
                                'category', 'price', 'mrp', 'unit', 'stock', 'images',
                                'isActive', 'createdAt', 'updatedAt',
-                               'lastOrderId', 'hiddenBy'])
+                               'lastOrderId', 'hiddenBy', 'translations'])
         && d.keys().hasAll(['farmerId', 'farmName', 'farmLocation', 'name', 'description',
                             'category', 'price', 'mrp', 'unit', 'stock', 'images',
                             'isActive', 'createdAt', 'updatedAt'])
         && isText(d.name, 2, 100)
         && isText(d.description, 0, 2000)
+        && isValidTranslations(d, 'name', 100, 'description', 2000)
         && d.category is string
         && d.price is number && d.price > 0 && d.price <= 100000
         && (d.mrp == null || (d.mrp is number && d.mrp >= d.price && d.mrp <= 100000))

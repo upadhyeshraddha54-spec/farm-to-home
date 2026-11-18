@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { productsPath } from '../../routes/paths'
+import { t } from '../../i18n'
 
 /**
  * Store-wide search. Submitting opens the product listing with ?q=…
@@ -20,14 +21,14 @@ export default function SearchBar({ initialQuery = '', className = '' }) {
   return (
     <form role="search" onSubmit={handleSubmit} className={`w-full ${className}`}>
       <label htmlFor={inputId} className="sr-only">
-        Search products
+        {t('Search products')}
       </label>
       <input
         id={inputId}
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search vegetables, fruits, dal, farms…"
+        placeholder={t('Search vegetables, fruits, dal, farms…')}
         maxLength={100}
         autoComplete="off"
         className="h-10 min-w-0 flex-1 rounded-l-lg border-0 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-accent-400 focus:outline-none"
@@ -35,7 +36,7 @@ export default function SearchBar({ initialQuery = '', className = '' }) {
       <button
         type="submit"
         className="flex h-10 w-12 shrink-0 items-center justify-center rounded-r-lg bg-accent-500 text-gray-900 transition-colors hover:bg-accent-400"
-        aria-label="Search"
+        aria-label={t('Search')}
       >
         <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden="true">
           <path

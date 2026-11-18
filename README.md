@@ -72,6 +72,7 @@ npm run dev                  # http://localhost:5173
 | `npm run lint` | Check the code (oxlint) |
 | `npm run test:emulator` | Run all security-rule and workflow tests against local Firebase emulators |
 | `npm run seed:demo` | Preview / add / remove the demo catalogue (see **Demo data**) |
+| `npm run i18n:check` | Fails if any visible text isn't translated into Hindi and Marathi |
 | `npm run admin:grant -- email@example.com` | Preview / grant / revoke admin rights (see **Admin accounts**) |
 
 ## Environment variables
@@ -125,6 +126,26 @@ default categories (never changes yours), refuses to overwrite non-demo data at 
 `npm run seed:demo -- --remove --write` (categories and Cloudinary photos stay).
 Orders for demo products can only be moved forward by an admin (demo farms have
 no login).
+
+## Languages (English, हिंदी, मराठी)
+
+Visitors pick a language from the menu in the header (also in the footer and
+dashboard sidebar). The choice is saved in their browser and applies to every
+page, including forms, filters, cart, checkout, notifications, dates
+and error messages.
+
+- Interface text lives in `src/i18n/hi.js` and `src/i18n/mr.js`; the English text
+  in the code is the key (`t('Add to cart')`). After changing or adding text, run
+  `npm run i18n:check` — it lists anything untranslated or missing.
+- Text people type (product names and descriptions, farm names and descriptions,
+  category names) can have optional Hindi and Marathi versions, entered in the
+  product form, farm profile and admin categories page. English is shown when a
+  translation is left empty.
+- Policy pages show a note that the English version applies if translations differ.
+- The demo catalogue includes Hindi and Marathi text. Demo products already in your
+  database get it the next time you run `npm run seed:demo -- --write` yourself.
+- Deploy the updated `firestore.rules` (they allow the optional `translations`
+  field) together with the new site, otherwise saving translated text is refused.
 
 ## Admin accounts
 

@@ -1,9 +1,10 @@
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import Alert from '../ui/Alert'
 import Button from '../ui/Button'
+import { t } from '../../i18n'
 
 /** Error message with a working "Try again" button that re-runs the request. */
-export default function LoadError({ error, onRetry, title = 'We couldn’t load this page' }) {
+export default function LoadError({ error, onRetry, title = t('We couldn’t load this page') }) {
   return (
     <div className="mx-auto max-w-lg py-10">
       <Alert variant="error" title={title}>
@@ -11,7 +12,7 @@ export default function LoadError({ error, onRetry, title = 'We couldn’t load 
       </Alert>
       {onRetry && (
         <Button variant="outline" className="mt-4" onClick={onRetry}>
-          Try again
+          {t('Try again')}
         </Button>
       )}
     </div>

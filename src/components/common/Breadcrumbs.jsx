@@ -1,9 +1,10 @@
 import { Link } from 'react-router'
+import { t } from '../../i18n'
 
 /** "Home › Vegetables › Tomatoes". The last item is the current page (not a link). */
 export default function Breadcrumbs({ items }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-4 text-sm">
+    <nav aria-label={t('Breadcrumb')} className="mb-4 text-sm">
       <ol className="flex flex-wrap items-center gap-1 text-gray-500">
         {items.map((item, index) => {
           const isLast = index === items.length - 1

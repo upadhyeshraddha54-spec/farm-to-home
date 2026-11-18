@@ -167,6 +167,32 @@ describe('security rules', () => {
     })
   })
 
+  describe('translations (Hindi/Marathi text)', () => {
+    const tr = (hi, mr) => ({ hi, mr })
+    it('products accept valid translations and reject bad shapes or sizes', async () => {
+      const f = as('farmer1')
+      await assertSucceeds(setDoc(doc(f, 'products/t1'), product({
+        translations: tr({ name: 'टमाटर', description: 'ताज़े टमाटर' }, { name: 'टोमॅटो', description: '' }),
+      })))
+      await assertSucceeds(setDoc(doc(f, 'products/t2'), product({ translations: { hi: { name: 'टमाटर' } } })))
+      await assertFails(setDoc(doc(f, 'products/t3'), product({ translations: { fr: { name: 'Tomates' } } })))      // unknown language
+      await assertFails(setDoc(doc(f, 'products/t4'), product({ translations: tr({ name: 'x', price: 1 }, {}) })))   // unknown field
+      await assertFails(setDoc(doc(f, 'products/t5'), product({ translations: tr({ name: 'x'.repeat(101) }, {}) })))  // too long
+      await assertFails(setDoc(doc(f, 'products/t6'), product({ translations: tr({ name: 5 }, {}) })))               // not text
+      await assertFails(setDoc(doc(f, 'products/t7'), product({ translations: 'टमाटर' })))
+      await assertSucceeds(updateDoc(doc(f, 'products/t1'), { translations: tr({ name: 'लाल टमाटर' }, {}), updatedAt: serverTimestamp() }))
+      await assertFails(updateDoc(doc(as('cust1'), 'products/t1'), { translations: tr({ name: 'x' }, {}), updatedAt: serverTimestamp() }))
+    })
+    it('farms and categories accept translations for their own fields only', async () => {
+      const farm = { farmName: 'Green Farm', city: 'Nashik', state: 'Maharashtra', description: '', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }
+      await assertFails(setDoc(doc(as('legacy1'), 'farms/legacy1'), { ...farm, translations: tr({ name: 'x' }, {}) }))
+      await assertSucceeds(setDoc(doc(as('legacy1'), 'farms/legacy1'), { ...farm, translations: tr({ farmName: 'ग्रीन फ़ार्म', description: '' }, {}) }))
+      const cat = { label: 'Herbs', emoji: '🌿', isActive: true, sortOrder: 55, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }
+      await assertSucceeds(setDoc(doc(as('admin1'), 'categories/herbs-tr'), { ...cat, translations: tr({ label: 'जड़ी-बूटियाँ' }, { label: 'वनौषधी' }) }))
+      await assertFails(setDoc(doc(as('admin1'), 'categories/herbs-tr2'), { ...cat, translations: tr({ label: 'x'.repeat(41) }, {}) }))
+    })
+  })
+
   describe('reviews', () => {
     it('are public to read but cannot be written without a delivered order', async () => {
       await assertSucceeds(getDocs(collection(anon(), 'products/listed1/reviews')))

@@ -1,20 +1,21 @@
 import { useState } from 'react'
 import { getOptimizedImageUrl } from '../../services/cloudinaryService'
 import ProductImage from './ProductImage'
+import { localized, t } from '../../i18n'
 
 /** Photo credit line for freely licensed images (e.g. demo photos from Wikimedia Commons). */
 function ImageCredit({ credit }) {
   if (!credit) return null
   return (
     <p className="mt-2 text-xs text-gray-500">
-      Photo: {credit.author} ·{' '}
+      {t('Photo: {author}', { author: credit.author })} ·{' '}
       <a
         href={credit.sourceUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="underline hover:text-brand-700"
       >
-        {credit.license}, via Wikimedia Commons
+        {t('{license}, via Wikimedia Commons', { license: credit.license })}
       </a>
     </p>
   )
@@ -33,7 +34,15 @@ export default function ImageGallery({ product }) {
           <img
             key={active.url}
             src={getOptimizedImageUrl(active.url, { width: 800, height: 800 })}
-            alt={`${product.name}${images.length > 1 ? ` — photo ${activeIndex + 1} of ${images.length}` : ''}`}
+            alt={
+              images.length > 1
+                ? t('{product} — photo {number} of {total}', {
+                    product: localized(product, 'name'),
+                    number: activeIndex + 1,
+                    total: images.length,
+                  })
+                : localized(product, 'name')
+            }
             className="aspect-square w-full object-cover"
           />
         ) : (
@@ -42,13 +51,13 @@ export default function ImageGallery({ product }) {
       </div>
 
       {images.length > 1 && (
-        <ul className="mt-3 flex gap-2 relative overflow-x-auto pb-1" aria-label="Product photos">
+        <ul className="mt-3 flex gap-2 relative overflow-x-auto pb-1" aria-label={t('Product photos')}>
           {images.map((image, index) => (
             <li key={image.url} className="shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveIndex(index)}
-                aria-label={`Show photo ${index + 1}`}
+                aria-label={t('Show photo {number}', { number: index + 1 })}
                 aria-current={index === activeIndex}
                 className={`block overflow-hidden rounded-lg border-2 transition-colors ${
                   index === activeIndex ? 'border-brand-600' : 'border-transparent hover:border-brand-300'

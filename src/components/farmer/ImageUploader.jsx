@@ -7,6 +7,7 @@ import {
 } from '../../services/cloudinaryService'
 import { MAX_IMAGE_SIZE_MB, MAX_PRODUCT_IMAGES } from '../../utils/constants'
 import Alert from '../ui/Alert'
+import { t, tx } from '../../i18n'
 
 /**
  * Upload and manage up to MAX_PRODUCT_IMAGES product photos.
@@ -43,7 +44,7 @@ export default function ImageUploader({ images, setImages, onBusyChange, error }
       else accepted.push(file)
     })
     if (accepted.length > slotsLeft) {
-      errors.push(`You can add ${MAX_PRODUCT_IMAGES} photos at most. Extra files were skipped.`)
+      errors.push(t('You can add {max} photos at most. Extra files were skipped.', { max: MAX_PRODUCT_IMAGES }))
       accepted.splice(Math.max(slotsLeft, 0))
     }
     setUploadErrors(errors)
@@ -73,20 +74,21 @@ export default function ImageUploader({ images, setImages, onBusyChange, error }
 
   if (!isCloudinaryConfigured) {
     return (
-      <Alert variant="warning" title="Image uploads are not set up">
-        Add <code>VITE_CLOUDINARY_CLOUD_NAME</code> and{' '}
-        <code>VITE_CLOUDINARY_UPLOAD_PRESET</code> to <code>.env.local</code>, then restart
-        the dev server.
+      <Alert variant="warning" title={t('Image uploads are not set up')}>
+        {tx('Add <a>VITE_CLOUDINARY_CLOUD_NAME</a> and <b>VITE_CLOUDINARY_UPLOAD_PRESET</b> to <c>.env.local</c>, then restart the dev server.', {
+          a: (text) => <code>{text}</code>,
+          b: (text) => <code>{text}</code>,
+          c: (text) => <code>{text}</code>,
+        })}
       </Alert>
     )
   }
 
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-gray-800">Photos</p>
+      <p className="mb-1.5 text-sm font-medium text-gray-800">{t('Photos')}</p>
       <p className="mb-3 text-xs text-gray-500">
-        Up to {MAX_PRODUCT_IMAGES} photos · JPG, PNG or WebP · max {MAX_IMAGE_SIZE_MB} MB each.
-        The first photo is the cover.
+        {t('Up to {max} photos · JPG, PNG or WebP · max {size} MB each. The first photo is the cover.', { max: MAX_PRODUCT_IMAGES, size: MAX_IMAGE_SIZE_MB })}
       </p>
 
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -97,12 +99,12 @@ export default function ImageUploader({ images, setImages, onBusyChange, error }
           >
             <img
               src={getOptimizedImageUrl(image.url, { width: 300, height: 300 })}
-              alt={`Product photo ${index + 1}`}
+              alt={t('Product photo {number}', { number: index + 1 })}
               className="aspect-square w-full object-cover"
             />
             {index === 0 && (
               <span className="absolute top-2 left-2 rounded bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">
-                Cover
+                {t('Cover')}
               </span>
             )}
             <div className="flex divide-x divide-gray-200 border-t border-gray-200 text-xs font-medium">
@@ -112,7 +114,7 @@ export default function ImageUploader({ images, setImages, onBusyChange, error }
                   onClick={() => makeCover(index)}
                   className="flex-1 py-2 text-brand-700 hover:bg-brand-50"
                 >
-                  Make cover
+                  {t('Make cover')}
                 </button>
               )}
               <button
@@ -120,7 +122,7 @@ export default function ImageUploader({ images, setImages, onBusyChange, error }
                 onClick={() => removeImage(index)}
                 className="flex-1 py-2 text-red-600 hover:bg-red-50"
               >
-                Remove
+                {t('Remove')}
               </button>
             </div>
           </li>
@@ -157,7 +159,7 @@ export default function ImageUploader({ images, setImages, onBusyChange, error }
               <span className="text-2xl leading-none" aria-hidden="true">
                 +
               </span>
-              Add photos
+              {t('Add photos')}
               <input
                 id={inputId}
                 type="file"

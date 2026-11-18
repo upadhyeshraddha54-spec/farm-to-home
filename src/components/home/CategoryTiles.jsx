@@ -2,7 +2,9 @@ import { Link } from 'react-router'
 import { productsPath } from '../../routes/paths'
 import { getOptimizedImageUrl } from '../../services/cloudinaryService'
 import { getCategoryStyle } from '../../utils/categoryIcons'
+import { getCategoryLabel } from '../../utils/constants'
 import useCategories from '../../hooks/useCategories'
+import { t, tp } from '../../i18n'
 
 /**
  * "Shop by category" tiles. Each tile uses a real product photo from that
@@ -22,7 +24,7 @@ export default function CategoryTiles({ products }) {
 
   return (
     <section className="rounded-2xl border border-cream-200 bg-white p-4 shadow-sm sm:p-5">
-      <h2 className="mb-4 text-lg font-bold text-gray-900 sm:text-xl">Shop by category</h2>
+      <h2 className="mb-4 text-lg font-bold text-gray-900 sm:text-xl">{t('Shop by category')}</h2>
       <ul className="grid grid-cols-4 gap-3 sm:gap-4 lg:grid-cols-8">
         {activeCategories.map((category) => {
           const style = getCategoryStyle(category.value)
@@ -51,10 +53,10 @@ export default function CategoryTiles({ products }) {
                   )}
                 </span>
                 <span className="text-xs leading-tight font-medium text-gray-800 group-hover:text-brand-700 sm:text-sm">
-                  {category.label}
+                  {getCategoryLabel(category.value)}
                 </span>
                 <span className="sr-only">
-                  ({count} {count === 1 ? 'product' : 'products'})
+                  ({tp(count, '{count} product', '{count} products')})
                 </span>
               </Link>
             </li>

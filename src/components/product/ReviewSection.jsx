@@ -21,6 +21,7 @@ import ConfirmDialog from '../ui/ConfirmDialog'
 import Spinner from '../ui/Spinner'
 import Textarea from '../ui/Textarea'
 import RatingStars, { RatingInput } from './RatingStars'
+import { t, tx } from '../../i18n'
 
 // Stable loader for useAsync: "uid|productId|farmerId" → order ID or null.
 const loadEligibility = (key) => {
@@ -38,7 +39,7 @@ function ReviewForm({ product, orderId, existing, customerName, uid, onSaved, on
   async function handleSubmit(event) {
     event.preventDefault()
     if (!rating) {
-      setError('Please choose a star rating.')
+      setError(t('Please choose a star rating.'))
       return
     }
     setSaving(true)
@@ -47,7 +48,7 @@ function ReviewForm({ product, orderId, existing, customerName, uid, onSaved, on
         { uid, product, orderId: existing?.orderId ?? orderId, customerName, rating, comment },
         { isNew: !existing },
       )
-      toast.success(existing ? 'Your review was updated.' : 'Thanks for your review!')
+      toast.success(existing ? t('Your review was updated.') : t('Thanks for your review!'))
       onSaved()
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err))
@@ -57,19 +58,19 @@ function ReviewForm({ product, orderId, existing, customerName, uid, onSaved, on
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-xl border border-brand-200 bg-brand-50/50 p-4 sm:p-5">
-      <h3 className="font-semibold text-gray-900">{existing ? 'Edit your review' : 'Write a review'}</h3>
+      <h3 className="font-semibold text-gray-900">{existing ? t('Edit your review') : t('Write a review')}</h3>
       <RatingInput value={rating} onChange={(v) => { setRating(v); setError('') }} error={error} />
       <Textarea
-        label="Your review (optional)"
+        label={t('Your review (optional)')}
         value={comment}
         maxLength={REVIEW_COMMENT_MAX}
-        placeholder="Freshness, taste, packing, delivery…"
+        placeholder={t('Freshness, taste, packing, delivery…')}
         onChange={(e) => setComment(e.target.value)}
       />
-      <p className="text-xs text-gray-500">Posted publicly as “{customerName}” with a “Verified purchase” label.</p>
+      <p className="text-xs text-gray-500">{t('Posted publicly as “{name}” with a “Verified purchase” label.', { name: customerName })}</p>
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={saving}>{saving ? 'Saving…' : existing ? 'Save changes' : 'Post review'}</Button>
-        {onCancel && <Button size="sm" variant="outline" onClick={onCancel} disabled={saving}>Cancel</Button>}
+        <Button type="submit" size="sm" disabled={saving}>{saving ? t('Saving…') : existing ? t('Save changes') : t('Post review')}</Button>
+        {onCancel && <Button size="sm" variant="outline" onClick={onCancel} disabled={saving}>{t('Cancel')}</Button>}
       </div>
     </form>
   )
@@ -117,7 +118,7 @@ export default function ReviewSection({ product, initialReviews = [], onReviewsC
     setDeleting(true)
     try {
       await deleteReview(product.id, toDelete.id)
-      toast.success('Review deleted.')
+      toast.success(t('Review deleted.'))
       setToDelete(null)
       await refresh()
     } catch (err) {
@@ -129,7 +130,7 @@ export default function ReviewSection({ product, initialReviews = [], onReviewsC
 
   return (
     <section id="reviews" className="scroll-mt-24 rounded-2xl border border-cream-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="reviews-title">
-      <h2 id="reviews-title" className="text-lg font-bold text-gray-900 sm:text-xl">Customer reviews</h2>
+      <h2 id="reviews-title" className="text-lg font-bold text-gray-900 sm:text-xl">{t('Customer reviews')}</h2>
 
       <div className="mt-4 grid gap-6 md:grid-cols-[14rem_1fr]">
         {/* Summary */}
@@ -151,7 +152,7 @@ export default function ReviewSection({ product, initialReviews = [], onReviewsC
               </ul>
             </>
           ) : (
-            <p className="text-sm text-gray-600">No reviews yet. Be the first to review this product after it’s delivered to you.</p>
+            <p className="text-sm text-gray-600">{t('No reviews yet. Be the first to review this product after it’s delivered to you.')}</p>
           )}
         </div>
 
@@ -159,18 +160,23 @@ export default function ReviewSection({ product, initialReviews = [], onReviewsC
         <div className="space-y-4">
           {!user && (
             <p className="text-sm text-gray-600">
-              <Link to={PATHS.LOGIN} state={{ from: location }} className="font-semibold text-brand-700 hover:underline">Sign in</Link>{' '}
-              to review products you’ve bought.
+              {tx('<signin>Sign in</signin> to review products you’ve bought.', {
+                signin: (text) => (
+                  <Link to={PATHS.LOGIN} state={{ from: location }} className="font-semibold text-brand-700 hover:underline">
+                    {text}
+                  </Link>
+                ),
+              })}
             </p>
           )}
           {user && isCustomer && mine && !editing && (
             <div className="rounded-xl border border-cream-200 bg-cream-50 p-4 text-sm">
-              <p className="font-semibold text-gray-900">Your review</p>
+              <p className="font-semibold text-gray-900">{t('Your review')}</p>
               <RatingStars value={mine.rating} count={1} className="mt-1" />
               {mine.comment && <p className="mt-2 whitespace-pre-line text-gray-700">{mine.comment}</p>}
               <div className="mt-3 flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edit</Button>
-                <Button size="sm" variant="danger-ghost" onClick={() => setToDelete(mine)}>Delete</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>{t('Edit')}</Button>
+                <Button size="sm" variant="danger-ghost" onClick={() => setToDelete(mine)}>{t('Delete')}</Button>
               </div>
             </div>
           )}
@@ -183,11 +189,11 @@ export default function ReviewSection({ product, initialReviews = [], onReviewsC
             <ReviewForm product={product} orderId={eligibleOrderId} customerName={reviewerDisplayName(profile?.name)} uid={user.uid} onSaved={refresh} />
           ) : (
             <Alert variant="info">
-              You can review this product once an order containing it has been delivered to you.
+              {t('You can review this product once an order containing it has been delivered to you.')}
             </Alert>
           ))}
           {user && !isCustomer && (
-            <p className="text-sm text-gray-600">Only customers who bought a product can review it.</p>
+            <p className="text-sm text-gray-600">{t('Only customers who bought a product can review it.')}</p>
           )}
         </div>
       </div>
@@ -201,14 +207,14 @@ export default function ReviewSection({ product, initialReviews = [], onReviewsC
                 <div className="flex flex-wrap items-center gap-2">
                   <RatingStars value={review.rating} count={1} size="sm" />
                   <span className="text-sm font-semibold text-gray-900">{review.customerName}</span>
-                  <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-semibold text-brand-800">Verified purchase</span>
+                  <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-semibold text-brand-800">{t('Verified purchase')}</span>
                 </div>
                 <span className="text-xs text-gray-500">{formatDate(review.createdAt)}</span>
               </div>
               {review.comment && <p className="mt-2 text-sm whitespace-pre-line text-gray-700">{review.comment}</p>}
               {role === ROLES.ADMIN && (
                 <button type="button" onClick={() => setToDelete(review)} className="mt-2 text-xs font-medium text-red-600 hover:underline">
-                  Remove review (admin)
+                  {t('Remove review (admin)')}
                 </button>
               )}
             </li>
@@ -218,9 +224,9 @@ export default function ReviewSection({ product, initialReviews = [], onReviewsC
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title="Delete this review?"
-        message="This can’t be undone."
-        confirmLabel="Delete"
+        title={t('Delete this review?')}
+        message={t('This can’t be undone.')}
+        confirmLabel={t('Delete')}
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}

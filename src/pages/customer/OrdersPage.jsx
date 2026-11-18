@@ -12,15 +12,19 @@ import { orderPath, PATHS } from '../../routes/paths'
 import { subscribeToCustomerOrders } from '../../services/orderService'
 import { formatDate } from '../../utils/formatters'
 import { formatPaise, getOverallStatus, shortOrderId } from '../../utils/orders'
+import { t, tp } from '../../i18n'
+import useLocalizedNames from '../../hooks/useLocalizedNames'
+import { getProductName } from '../../services/nameService'
 
 export default function OrdersPage() {
   const { user } = useAuth()
   const orders = useLiveData(subscribeToCustomerOrders, user.uid)
+  useLocalizedNames(orders.data?.flatMap((o) => o.items.map((i) => i.productId)) ?? [])
 
   return (
     <Container className="max-w-3xl py-6">
-      <PageMeta title="Your orders" noIndex />
-      <h1 className="mb-4 text-2xl font-bold text-gray-900">Your orders</h1>
+      <PageMeta title={t('Your orders')} noIndex />
+      <h1 className="mb-4 text-2xl font-bold text-gray-900">{t('Your orders')}</h1>
 
       {orders.error ? (
         <LoadError error={orders.error} />
@@ -28,9 +32,9 @@ export default function OrdersPage() {
         <Spinner fullPage />
       ) : orders.data.length === 0 ? (
         <EmptyState
-          title="No orders yet"
-          message="When you place an order it will appear here, and you can track each shipment."
-          action={<Button to={PATHS.PRODUCTS}>Start shopping</Button>}
+          title={t('No orders yet')}
+          message={t('When you place an order it will appear here, and you can track each shipment.')}
+          action={<Button to={PATHS.PRODUCTS}>{t('Start shopping')}</Button>}
         />
       ) : (
         <ul className="space-y-3">
@@ -44,14 +48,17 @@ export default function OrdersPage() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-900">
-                      Order #{shortOrderId(order.id)}
+                      {t('Order #{id}', { id: shortOrderId(order.id) })}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {formatDate(order.createdAt)} · {itemCount} {itemCount === 1 ? 'item' : 'items'} from{' '}
-                      {order.farmerIds.length} {order.farmerIds.length === 1 ? 'farm' : 'farms'}
+                      {formatDate(order.createdAt)} ·{' '}
+                      {t('{items} from {farms}', {
+                        items: tp(itemCount, '{count} item', '{count} items'),
+                        farms: tp(order.farmerIds.length, '{count} farm', '{count} farms'),
+                      })}
                     </p>
                     <p className="mt-1 truncate text-sm text-gray-700">
-                      {order.items.map((i) => i.name).join(', ')}
+                      {order.items.map((i) => getProductName(i.productId, i.name)).join(', ')}
                     </p>
                   </div>
                   <div className="text-right">

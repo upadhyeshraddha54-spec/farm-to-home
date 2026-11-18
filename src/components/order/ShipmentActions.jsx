@@ -1,22 +1,23 @@
 import { useState } from 'react'
 import useToast from '../../hooks/useToast'
 import { updateShipmentStatus } from '../../services/orderService'
-import { NEXT_STATUSES, ORDER_STATUS } from '../../utils/constants'
+import { getOrderStatusLabel, NEXT_STATUSES, ORDER_STATUS } from '../../utils/constants'
 import { getFriendlyErrorMessage } from '../../utils/firebaseErrors'
 import Button from '../ui/Button'
 import ConfirmDialog from '../ui/ConfirmDialog'
+import { msg, t } from '../../i18n'
 
 const ACTION_LABELS = {
-  confirmed: 'Confirm order',
-  shipped: 'Mark as shipped',
-  delivered: 'Mark as delivered (cash collected)',
-  cancelled: 'Cancel',
+  confirmed: msg('Confirm order'),
+  shipped: msg('Mark as shipped'),
+  delivered: msg('Mark as delivered (cash collected)'),
+  cancelled: msg('Cancel'),
 }
 
 const HINTS = {
-  placed: 'Confirm when you can fulfil this order, or cancel if you can’t.',
-  confirmed: 'Pack the items and mark as shipped when they leave the farm.',
-  shipped: 'Mark as delivered once the customer receives the items and pays.',
+  placed: msg('Confirm when you can fulfil this order, or cancel if you can’t.'),
+  confirmed: msg('Pack the items and mark as shipped when they leave the farm.'),
+  shipped: msg('Mark as delivered once the customer receives the items and pays.'),
 }
 
 /** Status buttons for ONE farmer's part of an order (farmer or admin). */
@@ -32,8 +33,8 @@ export default function ShipmentActions({ orderId, farmerId, status }) {
       await updateShipmentStatus(orderId, [farmerId], to)
       toast.success(
         to === ORDER_STATUS.CANCELLED
-          ? 'Shipment cancelled. The stock has been added back.'
-          : `Marked as ${to}.`,
+          ? t('Shipment cancelled. The stock has been added back.')
+          : t('Marked as {status}.', { status: getOrderStatusLabel(to) }),
       )
     } catch (error) {
       toast.error(getFriendlyErrorMessage(error))
@@ -51,22 +52,22 @@ export default function ShipmentActions({ orderId, farmerId, status }) {
         .filter((to) => to !== ORDER_STATUS.CANCELLED)
         .map((to) => (
           <Button key={to} size="sm" onClick={() => move(to)} disabled={busy}>
-            {ACTION_LABELS[to]}
+            {t(ACTION_LABELS[to])}
           </Button>
         ))}
       {next.includes(ORDER_STATUS.CANCELLED) && (
         <Button size="sm" variant="outline" onClick={() => setConfirmCancel(true)} disabled={busy}>
-          {ACTION_LABELS.cancelled}
+          {t(ACTION_LABELS.cancelled)}
         </Button>
       )}
-      {HINTS[status] && <p className="w-full text-xs text-gray-500">{HINTS[status]}</p>}
+      {HINTS[status] && <p className="w-full text-xs text-gray-500">{t(HINTS[status])}</p>}
 
       <ConfirmDialog
         open={confirmCancel}
-        title="Cancel this shipment?"
-        message="The customer will see it as cancelled and the items go back into your stock. This can’t be undone."
-        confirmLabel="Cancel shipment"
-        cancelLabel="Keep it"
+        title={t('Cancel this shipment?')}
+        message={t('The customer will see it as cancelled and the items go back into your stock. This can’t be undone.')}
+        confirmLabel={t('Cancel shipment')}
+        cancelLabel={t('Keep it')}
         busy={busy}
         onConfirm={() => move(ORDER_STATUS.CANCELLED)}
         onCancel={() => setConfirmCancel(false)}
